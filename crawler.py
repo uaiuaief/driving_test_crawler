@@ -1,11 +1,14 @@
 import os
+import time
+import headers
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from captcha_solver import solver
-import headers
+from config import DRIVING_LICENCE_NUMBER, TEST_REF
 
 
 def close_driver(func):
@@ -50,17 +53,34 @@ class DVSACrawler:
         driver.execute_script(f"arguments[0].innerText = '{solution}'", text_field)
         driver.execute_script(f'onCaptchaFinished("{solution}")')
 
-#        recaptcha_iframe = driver.find_element_by_xpath('//iframe[@title="reCAPTCHA"]')
-#        driver.switch_to.frame(recaptcha_iframe)
-#
-#        checkbox = driver.find_element_by_xpath('//span[@id="recaptcha-anchor"]')
-#        checkbox.click()
-        #text_field.send_keys(solution)
+        driver.switch_to.default_content()
+        #post recaptcha solving
+        try:
+            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '//div[@id="main_c"]')))
+        except:
+            print('no queue')
+            driver.switch_to.default_content()
+            
+        licence_number_textfield = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//input[@id="driving-licence-number"]'))
+                )
+
+
+        #licence_number_textfield = driver.find_element_by_xpath('//input[@id="driving-licence-number"]')
+        reference_number_textfield = driver.find_element_by_xpath('//input[@id="application-reference-number"]')
+        continue_button = driver.find_element_by_xpath('//input[@id="booking-login"]')
+
+        licence_number_textfield.send_keys(DRIVING_LICENCE_NUMBER)
+        time.sleep(2)
+        reference_number_textfield.send_keys(TEST_REF)
+        time.sleep(10)
+        continue_button.click()
         
     
     def get_captcha_solution(self, data_sitekey):
         print('solving')
         result = solver.recaptcha(sitekey=data_sitekey, url=self.URL)
+        print('solved')
 
         return result.get('code')
         #return "123456"
