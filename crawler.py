@@ -27,12 +27,11 @@ class DVSACrawler:
     def get_data_sitekey(self, driver=None):
         options = Options()
         profile = webdriver.FirefoxProfile()
+
         user_agent = headers.get_user_agent()
-        print(user_agent)
         profile.set_preference("general.useragent.override", user_agent)
         
         driver = webdriver.Firefox(profile, options=options)
-        driver._client.set_header_overrides(headers='blabla')
 
         if not driver:
             raise TypeError("driver can't be of type None, decorate this function with `@close_driver`")
@@ -49,7 +48,7 @@ class DVSACrawler:
 
         text_field = driver.find_element_by_xpath('//textarea[@class="g-recaptcha-response"]')
         driver.execute_script(f"arguments[0].innerText = '{solution}'", text_field)
-        text_field.submit()
+        driver.execute_script(f'onCaptchaFinished("{solution}")')
 
 #        recaptcha_iframe = driver.find_element_by_xpath('//iframe[@title="reCAPTCHA"]')
 #        driver.switch_to.frame(recaptcha_iframe)
@@ -61,10 +60,10 @@ class DVSACrawler:
     
     def get_captcha_solution(self, data_sitekey):
         print('solving')
-        #result = solver.recaptcha(sitekey=data_sitekey, url=self.URL)
+        result = solver.recaptcha(sitekey=data_sitekey, url=self.URL)
 
-        #return result.get('code')
-        return "123456"
+        return result.get('code')
+        #return "123456"
 
 
 
