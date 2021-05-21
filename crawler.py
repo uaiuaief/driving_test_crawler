@@ -26,7 +26,7 @@ def close_driver(func):
 class DVSACrawler:
     URL = "https://driverpracticaltest.dvsa.gov.uk/login"
     CHANGE_TEST_CENTER = True
-    TEST_CENTER = "worksop"
+    TEST_CENTER = "Worksop"
 
     driver = None
 
@@ -59,18 +59,37 @@ class DVSACrawler:
                     EC.presence_of_element_located((By.XPATH, '//div[@id="page"]')))
 
             data_journey = change_date_main_div.get_attribute('data-journey')
+            print(data_journey)
 
-            if data_journey == "pp-change-practical-driving-test-public:choose-alternative-test-centre":
-                print("no available dates")
-                return
-            elif data_journey == "pp-change-practical-driving-test-public:choose-available-test":
-                print("CHOOSE DATE PAGE")
+            print(f"changing test center to {self.TEST_CENTER}")
+            self.change_test_center()
 
+#            if data_journey == "pp-change-practical-driving-test-public:choose-alternative-test-centre":
+#                print("no available dates")
+#                if self.CHANGE_TEST_CENTER:
+#                    print(f"changing test center to {self.TEST_CENTER}")
+#                    self.change_test_center()
+#                return
+#            elif data_journey == "pp-change-practical-driving-test-public:choose-available-test":
+#                print("CHOOSE DATE PAGE")
+#
     
     def change_test_center(self):
+        change_button = WebDriverWait(self.driver, 20).until(
+                EC.presence_of_element_located((By.XPATH, '//a[@id="change-test-centre"]')))
         
-        pass
+        change_button.click()
 
+        test_center_input = WebDriverWait(self.driver, 20).until(
+                EC.presence_of_element_located((By.XPATH, '//input[@id="test-centres-input"]')))
+
+        test_center_input.send_keys(self.TEST_CENTER)
+        test_center_input.submit()
+
+        test_center_list = WebDriverWait(self.driver, 20).until(
+                EC.presence_of_element_located((By.XPATH, '//ul[@class="test-centre-results"]')))
+
+        test_center_list.find_element_by_link_text(self.TEST_CENTER).click()
 
 
 
