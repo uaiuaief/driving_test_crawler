@@ -25,6 +25,7 @@ def close_driver(func):
 
 class DVSACrawler:
     URL = "https://driverpracticaltest.dvsa.gov.uk/login"
+    TEST_CENTER = "worksop"
 
     #@close_driver
     def get_data_sitekey(self, driver=None):
@@ -57,11 +58,12 @@ class DVSACrawler:
         #post recaptcha solving
         try:
             WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '//div[@id="main_c"]')))
+            
         except:
             print('no queue')
             driver.switch_to.default_content()
             
-        licence_number_textfield = WebDriverWait(driver, 10).until(
+        licence_number_textfield = WebDriverWait(driver, 60).until(
                 EC.presence_of_element_located((By.XPATH, '//input[@id="driving-licence-number"]'))
                 )
 
@@ -75,7 +77,37 @@ class DVSACrawler:
         reference_number_textfield.send_keys(TEST_REF)
         time.sleep(10)
         continue_button.click()
+
+        #LOGGED IN
         
+        change_date_button = WebDriverWait(driver, 20).until(
+                EC.presence_of_element_located((By.XPATH, '//a[@id="date-time-change"]')))
+
+        change_date_button.click()
+
+        earliest_date_radial_button = WebDriverWait(driver, 20).until(
+                EC.presence_of_element_located((By.XPATH, '//input[@id="test-choice-earliest"]')))
+
+        earliest_date_radial_button.click()
+        earliest_date_radial_button.submit()
+         
+        change_date_main_div = WebDriverWait(driver, 20).until(
+                EC.presence_of_element_located((By.XPATH, '//div[@id="page"]')))
+
+        data_journey = change_date_main_div.get_attribute('data-journey')
+
+        if data_journey == "pp-change-practical-driving-test-public:choose-alternative-test-centre":
+            print("no available dates")
+            return
+        elif data_journey == "pp-change-practical-driving-test-public:choose-available-test":
+            print("CHOOSE DATE PAGE")
+
+
+            
+
+
+
+
     
     def get_captcha_solution(self, data_sitekey):
         print('solving')
