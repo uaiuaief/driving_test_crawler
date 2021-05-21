@@ -25,88 +25,93 @@ def close_driver(func):
 
 class DVSACrawler:
     URL = "https://driverpracticaltest.dvsa.gov.uk/login"
+    CHANGE_TEST_CENTER = True
     TEST_CENTER = "worksop"
 
-    #@close_driver
-    def get_data_sitekey(self, driver=None):
+    driver = None
+
+    def scrape(self):
         options = Options()
         profile = webdriver.FirefoxProfile()
 
         user_agent = headers.get_user_agent()
         profile.set_preference("general.useragent.override", user_agent)
         
-        driver = webdriver.Firefox(profile, options=options)
+        #with webdriver.Firefox(profile, options=options) as driver:
+        if True:
+            driver = webdriver.Firefox(profile, options=options)
+            self.driver = driver
 
-        if not driver:
-            raise TypeError("driver can't be of type None, decorate this function with `@close_driver`")
+            self.driver.get(self.URL)
+            self.solve_captcha()
+            self.login()
+            self.go_to_change_date_page()
 
-        driver.get(self.URL)
+            ##
 
-        iframe = driver.find_element_by_xpath('//iframe[@id="main-iframe"]')
-        driver.switch_to.frame(iframe)
+            earliest_date_radial_button = WebDriverWait(driver, 20).until(
+                    EC.presence_of_element_located((By.XPATH, '//input[@id="test-choice-earliest"]')))
 
-        element = driver.find_element_by_xpath('//div[@class="g-recaptcha"]')
+            earliest_date_radial_button.click()
+            earliest_date_radial_button.submit()
+
+            change_date_main_div = WebDriverWait(driver, 20).until(
+                    EC.presence_of_element_located((By.XPATH, '//div[@id="page"]')))
+
+            data_journey = change_date_main_div.get_attribute('data-journey')
+
+            if data_journey == "pp-change-practical-driving-test-public:choose-alternative-test-centre":
+                print("no available dates")
+                return
+            elif data_journey == "pp-change-practical-driving-test-public:choose-available-test":
+                print("CHOOSE DATE PAGE")
+
+    
+    def change_test_center(self):
+        
+        pass
+
+
+
+
+    def solve_captcha(self):
+        iframe = self.driver.find_element_by_xpath('//iframe[@id="main-iframe"]')
+        self.driver.switch_to.frame(iframe)
+
+        element = self.driver.find_element_by_xpath('//div[@class="g-recaptcha"]')
         sitekey = element.get_attribute('data-sitekey')
 
         solution = self.get_captcha_solution(sitekey)
 
-        text_field = driver.find_element_by_xpath('//textarea[@class="g-recaptcha-response"]')
-        driver.execute_script(f"arguments[0].innerText = '{solution}'", text_field)
-        driver.execute_script(f'onCaptchaFinished("{solution}")')
+        text_field = self.driver.find_element_by_xpath('//textarea[@class="g-recaptcha-response"]')
+        self.driver.execute_script(f"arguments[0].innerText = '{solution}'", text_field)
+        self.driver.execute_script(f'onCaptchaFinished("{solution}")')
 
-        driver.switch_to.default_content()
-        #post recaptcha solving
+        self.driver.switch_to.default_content()
+
+    def login(self):
         try:
-            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '//div[@id="main_c"]')))
-            
+            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '//div[@id="main_c"]')))
         except:
             print('no queue')
-            driver.switch_to.default_content()
-            
-        licence_number_textfield = WebDriverWait(driver, 60).until(
+            self.driver.switch_to.default_content()
+
+        licence_number_textfield = WebDriverWait(self.driver, 60).until(
                 EC.presence_of_element_located((By.XPATH, '//input[@id="driving-licence-number"]'))
                 )
 
-
-        #licence_number_textfield = driver.find_element_by_xpath('//input[@id="driving-licence-number"]')
-        reference_number_textfield = driver.find_element_by_xpath('//input[@id="application-reference-number"]')
-        continue_button = driver.find_element_by_xpath('//input[@id="booking-login"]')
+        reference_number_textfield = self.driver.find_element_by_xpath('//input[@id="application-reference-number"]')
+        continue_button = self.driver.find_element_by_xpath('//input[@id="booking-login"]')
 
         licence_number_textfield.send_keys(DRIVING_LICENCE_NUMBER)
-        time.sleep(2)
         reference_number_textfield.send_keys(TEST_REF)
-        time.sleep(10)
         continue_button.click()
 
-        #LOGGED IN
-        
-        change_date_button = WebDriverWait(driver, 20).until(
+    def go_to_change_date_page(self):
+        change_date_button = WebDriverWait(self.driver, 20).until(
                 EC.presence_of_element_located((By.XPATH, '//a[@id="date-time-change"]')))
 
         change_date_button.click()
-
-        earliest_date_radial_button = WebDriverWait(driver, 20).until(
-                EC.presence_of_element_located((By.XPATH, '//input[@id="test-choice-earliest"]')))
-
-        earliest_date_radial_button.click()
-        earliest_date_radial_button.submit()
-         
-        change_date_main_div = WebDriverWait(driver, 20).until(
-                EC.presence_of_element_located((By.XPATH, '//div[@id="page"]')))
-
-        data_journey = change_date_main_div.get_attribute('data-journey')
-
-        if data_journey == "pp-change-practical-driving-test-public:choose-alternative-test-centre":
-            print("no available dates")
-            return
-        elif data_journey == "pp-change-practical-driving-test-public:choose-available-test":
-            print("CHOOSE DATE PAGE")
-
-
-            
-
-
-
 
     
     def get_captcha_solution(self, data_sitekey):

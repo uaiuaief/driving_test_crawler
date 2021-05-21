@@ -1,7 +1,7 @@
 from crawler import DVSACrawler
 
 crawler = DVSACrawler() 
-print(crawler.get_data_sitekey())
+print(crawler.scrape())
 
 
 
