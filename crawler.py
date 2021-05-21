@@ -64,6 +64,12 @@ class DVSACrawler:
             print(f"changing test center to {self.TEST_CENTER}")
             self.change_test_center()
 
+            self.get_dates()
+
+
+
+
+            #calendar
 #            if data_journey == "pp-change-practical-driving-test-public:choose-alternative-test-centre":
 #                print("no available dates")
 #                if self.CHANGE_TEST_CENTER:
@@ -73,6 +79,27 @@ class DVSACrawler:
 #            elif data_journey == "pp-change-practical-driving-test-public:choose-available-test":
 #                print("CHOOSE DATE PAGE")
 #
+    def get_dates(self):
+        slot_picker_ul = WebDriverWait(self.driver, 20).until(
+                EC.presence_of_element_located((By.XPATH, '//ul[@class="SlotPicker-days"]')))
+
+        #print(slot_picker_ul.get_attribute("innerHTML"))
+        available_days = slot_picker_ul.find_elements_by_xpath('//li[@class="SlotPicker-day"]')
+        
+        dates = []
+        print("available days: ", len(available_days))
+        for available_day in available_days:
+            labels = available_day.find_elements_by_tag_name('label')
+            date = available_day.get_attribute('id')
+            print("getting date :", date)
+            for label in labels:
+                time = label.find_element_by_xpath('.//strong[@class="SlotPicker-time"]').get_attribute('innerHTML')
+                print("getting time :", time)
+                dates.append(f"{date} :: {time}")
+
+        print(dates)
+
+
     
     def change_test_center(self):
         change_button = WebDriverWait(self.driver, 20).until(
@@ -83,6 +110,7 @@ class DVSACrawler:
         test_center_input = WebDriverWait(self.driver, 20).until(
                 EC.presence_of_element_located((By.XPATH, '//input[@id="test-centres-input"]')))
 
+        test_center_input.clear()
         test_center_input.send_keys(self.TEST_CENTER)
         test_center_input.submit()
 
