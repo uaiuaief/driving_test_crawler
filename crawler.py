@@ -1,6 +1,7 @@
 import os
 import time
 import headers
+import pprint
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -43,6 +44,11 @@ class DVSACrawler:
             self.driver = driver
 
             self.driver.get(self.URL)
+
+            if self.is_ip_banned():
+                print('ip banned')
+                return
+
             self.solve_captcha()
             self.login()
             self.go_to_change_date_page()
@@ -61,13 +67,13 @@ class DVSACrawler:
             data_journey = change_date_main_div.get_attribute('data-journey')
             print(data_journey)
 
+            ##
             print(f"changing test center to {self.TEST_CENTER}")
+
+
             self.change_test_center()
 
             self.get_dates()
-
-
-
 
             #calendar
 #            if data_journey == "pp-change-practical-driving-test-public:choose-alternative-test-centre":
@@ -83,10 +89,9 @@ class DVSACrawler:
         slot_picker_ul = WebDriverWait(self.driver, 20).until(
                 EC.presence_of_element_located((By.XPATH, '//ul[@class="SlotPicker-days"]')))
 
-        #print(slot_picker_ul.get_attribute("innerHTML"))
         available_days = slot_picker_ul.find_elements_by_tag_name('li')
         
-        dates = []
+        dates = {}
         print("available days: ", len(available_days))
         for available_day in available_days:
             labels = available_day.find_elements_by_tag_name('label')
@@ -94,10 +99,14 @@ class DVSACrawler:
             print("getting date :", date)
             for label in labels:
                 time = label.find_element_by_xpath('.//strong[@class="SlotPicker-time"]').get_attribute('innerHTML')
-                print("getting time :", time)
-                dates.append(f"{date} :: {time}")
+                #print("getting time :", time)
+                #dates.append(f"{date} :: {time}")
+                if not dates.get(date):
+                    dates[date] = [time]
+                else:
+                    dates[date].append(time)
 
-        print(dates)
+        pprint.pprint(dates)
 
 
     
@@ -168,6 +177,23 @@ class DVSACrawler:
 
         return result.get('code')
         #return "123456"
+
+    def is_ip_banned(self):
+        iframe = self.driver.find_element_by_xpath('//iframe[@id="main-iframe"]')
+        self.driver.switch_to_frame(iframe)
+        try:
+            error = self.driver.find_element_by_xpath('//div[@class="error-title"]')
+            if error.get_attribute('textContent') == 'Access denied':
+                print('IP IS BANNED')
+                return True
+            print('not banned')
+            return False
+        except:
+            print('not banned')
+            return False
+        finally:
+            self.driver.switch_to.default_content()
+
 
 
 
