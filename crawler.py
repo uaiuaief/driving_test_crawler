@@ -84,7 +84,7 @@ class DVSACrawler:
                 EC.presence_of_element_located((By.XPATH, '//ul[@class="SlotPicker-days"]')))
 
         #print(slot_picker_ul.get_attribute("innerHTML"))
-        available_days = slot_picker_ul.find_elements_by_xpath('//li[@class="SlotPicker-day"]')
+        available_days = slot_picker_ul.find_elements_by_tag_name('li')
         
         dates = []
         print("available days: ", len(available_days))
