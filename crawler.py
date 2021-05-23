@@ -1,7 +1,9 @@
 import os
 import time
-import headers
+import requests
 import pprint
+import headers
+import json
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -9,7 +11,7 @@ from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from captcha_solver import solver
-from config import DRIVING_LICENCE_NUMBER, TEST_REF
+#from config import DRIVING_LICENCE_NUMBER, TEST_REF
 
 
 def close_driver(func):
@@ -30,6 +32,16 @@ class DVSACrawler:
     TEST_CENTER = "Worksop"
 
     driver = None
+
+    def __init__(self):
+        r = requests.get('http://localhost:8000/api/customer/1/')
+        customer_data = r.json()
+        print(customer_data)
+        self.test_center = customer_data.get('main_test_center')
+        self.driving_licence_number = customer_data.get('driving_licence_number')
+        self.test_ref = customer_data.get('test_ref')
+
+
 
     def scrape(self):
         options = Options()
@@ -68,7 +80,7 @@ class DVSACrawler:
             print(data_journey)
 
             ##
-            print(f"changing test center to {self.TEST_CENTER}")
+            print(f"changing test center to {self.test_center}")
 
 
             self.change_test_center()
@@ -120,13 +132,13 @@ class DVSACrawler:
                 EC.presence_of_element_located((By.XPATH, '//input[@id="test-centres-input"]')))
 
         test_center_input.clear()
-        test_center_input.send_keys(self.TEST_CENTER)
+        test_center_input.send_keys(self.test_center)
         test_center_input.submit()
 
         test_center_list = WebDriverWait(self.driver, 20).until(
                 EC.presence_of_element_located((By.XPATH, '//ul[@class="test-centre-results"]')))
 
-        test_center_list.find_element_by_link_text(self.TEST_CENTER).click()
+        test_center_list.find_element_by_link_text(self.test_center).click()
 
 
 
@@ -159,8 +171,8 @@ class DVSACrawler:
         reference_number_textfield = self.driver.find_element_by_xpath('//input[@id="application-reference-number"]')
         continue_button = self.driver.find_element_by_xpath('//input[@id="booking-login"]')
 
-        licence_number_textfield.send_keys(DRIVING_LICENCE_NUMBER)
-        reference_number_textfield.send_keys(TEST_REF)
+        licence_number_textfield.send_keys(self.driving_licence_number)
+        reference_number_textfield.send_keys(self.test_ref)
         continue_button.click()
 
     def go_to_change_date_page(self):
