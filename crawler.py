@@ -4,6 +4,7 @@ import requests
 import pprint
 import headers
 import json
+from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -85,7 +86,15 @@ class DVSACrawler:
 
             self.change_test_center()
 
-            self.get_dates()
+
+            print("\n\n ########################## \n\n")
+            url = f'http://localhost:8000/api/add-available-dates/Nott'
+            payload = self.get_dates()
+
+            print(payload)
+
+            r = requests.post(url, json=payload)
+            print(r.status_code)
 
             #calendar
 #            if data_journey == "pp-change-practical-driving-test-public:choose-alternative-test-centre":
@@ -97,6 +106,9 @@ class DVSACrawler:
 #            elif data_journey == "pp-change-practical-driving-test-public:choose-available-test":
 #                print("CHOOSE DATE PAGE")
 #
+    def to_military_time(self, time):
+        return datetime.strptime(time, '%I:%M%p').strftime('%H:%M')
+
     def get_dates(self):
         slot_picker_ul = WebDriverWait(self.driver, 20).until(
                 EC.presence_of_element_located((By.XPATH, '//ul[@class="SlotPicker-days"]')))
@@ -108,19 +120,22 @@ class DVSACrawler:
         for available_day in available_days:
             labels = available_day.find_elements_by_tag_name('label')
             date = available_day.get_attribute('id')
+            date = date[5:]
             print("getting date :", date)
             for label in labels:
-                time = label.find_element_by_xpath('.//strong[@class="SlotPicker-time"]').get_attribute('innerHTML')
+                time_ = label.find_element_by_xpath('.//strong[@class="SlotPicker-time"]').get_attribute('innerHTML')
+
                 #print("getting time :", time)
                 #dates.append(f"{date} :: {time}")
+                time_ = self.to_military_time(time_)
+
                 if not dates.get(date):
-                    dates[date] = [time]
+                    dates[date] = [time_]
                 else:
-                    dates[date].append(time)
+                    dates[date].append(time_)
 
-        pprint.pprint(dates)
-
-
+        #pprint.pprint(dates)
+        return {'dates' : dates}
     
     def change_test_center(self):
         change_button = WebDriverWait(self.driver, 20).until(
@@ -164,7 +179,7 @@ class DVSACrawler:
             print('no queue')
             self.driver.switch_to.default_content()
 
-        licence_number_textfield = WebDriverWait(self.driver, 60).until(
+        licence_number_textfield = WebDriverWait(self.driver, 180).until(
                 EC.presence_of_element_located((By.XPATH, '//input[@id="driving-licence-number"]'))
                 )
 
