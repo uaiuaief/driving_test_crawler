@@ -10,9 +10,9 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.common.keys import Keys
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
 from captcha_solver import solver
-#from config import DRIVING_LICENCE_NUMBER, TEST_REF
 
 
 def close_driver(func):
@@ -30,7 +30,6 @@ def close_driver(func):
 class DVSACrawler:
     URL = "https://driverpracticaltest.dvsa.gov.uk/login"
     CHANGE_TEST_CENTER = True
-    TEST_CENTER = "Worksop"
 
     driver = None
 
@@ -43,6 +42,28 @@ class DVSACrawler:
         self.test_ref = customer_data.get('test_ref')
 
 
+    def is_customer_info_valid(self):
+        options = Options()
+        profile = webdriver.FirefoxProfile()
+
+        user_agent = headers.get_user_agent()
+        profile.set_preference("general.useragent.override", user_agent)
+        
+        with webdriver.Firefox(profile, options=options) as driver:
+            self.driver = driver
+
+            self.driver.get(self.URL)
+
+            self.solve_captcha()
+            self.login()
+
+            try:
+                WebDriverWait(driver, 30).until(
+                        EC.presence_of_element_located((By.XPATH, '//div[@data-journey="pp-change-practical-driving-test-public:change-booking"]')))
+
+                return True
+            except TimeoutException as e:
+                return False
 
     def scrape(self):
         options = Options()
@@ -74,21 +95,23 @@ class DVSACrawler:
             earliest_date_radial_button.click()
             earliest_date_radial_button.submit()
 
-            change_date_main_div = WebDriverWait(driver, 20).until(
-                    EC.presence_of_element_located((By.XPATH, '//div[@id="page"]')))
+#            change_date_main_div = WebDriverWait(driver, 20).until(
+#                    EC.presence_of_element_located((By.XPATH, '//div[@id="page"]')))
+#
+#            data_journey = change_date_main_div.get_attribute('data-journey')
+#            print(data_journey)
 
-            data_journey = change_date_main_div.get_attribute('data-journey')
-            print(data_journey)
-
-            ##
-            print(f"changing test center to {self.test_center}")
-
-
-            self.change_test_center()
+            if not self.are_there_available_dates():
+                print("there are no available dates")
+                if self.CHANGE_TEST_CENTER:
+                    print(f"changing test center to {self.test_center}")
+                    self.change_test_center()
+                else:
+                    return
 
 
             print("\n\n ########################## \n\n")
-            url = f'http://localhost:8000/api/add-available-dates/Nott'
+            url = f'http://localhost:8000/api/add-available-dates/{self.test_center}'
             payload = self.get_dates()
 
             print(payload)
@@ -106,6 +129,18 @@ class DVSACrawler:
 #            elif data_journey == "pp-change-practical-driving-test-public:choose-available-test":
 #                print("CHOOSE DATE PAGE")
 #
+    def are_there_available_dates(self):
+        change_date_main_div = WebDriverWait(self.driver, 20).until(
+                EC.presence_of_element_located((By.XPATH, '//div[@id="page"]')))
+
+        data_journey = change_date_main_div.get_attribute('data-journey')
+
+        if data_journey == "pp-change-practical-driving-test-public:choose-available-test":
+            return True
+        #else data_journey == "pp-change-practical-driving-test-public:choose-alternative-test-centre":
+        else:
+            return False
+    
     def to_military_time(self, time):
         return datetime.strptime(time, '%I:%M%p').strftime('%H:%M')
 

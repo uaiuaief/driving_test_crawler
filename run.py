@@ -1,7 +1,7 @@
 from crawler import DVSACrawler
 
 crawler = DVSACrawler() 
-print(crawler.scrape())
+print(crawler.is_customer_info_valid())
 
 
 
