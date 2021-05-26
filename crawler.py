@@ -4,6 +4,7 @@ import requests
 import pprint
 import headers
 import json
+import api_integration as API
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -61,8 +62,10 @@ class DVSACrawler:
                 WebDriverWait(driver, 30).until(
                         EC.presence_of_element_located((By.XPATH, '//div[@data-journey="pp-change-practical-driving-test-public:change-booking"]')))
 
+                API.validate_customer_info('1')
                 return True
             except TimeoutException as e:
+                API.invalidate_customer_info('1')
                 return False
 
     def scrape(self):
