@@ -1,6 +1,8 @@
 from crawler import DVSACrawler
+import logging
 
 crawler = DVSACrawler() 
+
 print(crawler.is_customer_info_valid())
 
 
