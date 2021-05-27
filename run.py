@@ -3,7 +3,8 @@ import logging
 
 crawler = DVSACrawler() 
 
-print(crawler.is_customer_info_valid())
+#print(crawler.is_customer_info_valid())
+print(crawler.scrape())
 
 
 

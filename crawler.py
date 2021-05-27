@@ -14,6 +14,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
 from captcha_solver import solver
+from config import logger
 
 
 def close_driver(func):
@@ -37,7 +38,7 @@ class DVSACrawler:
     def __init__(self):
         r = requests.get('http://localhost:8000/api/customer/1/')
         customer_data = r.json()
-        print(customer_data)
+        logger.debug(customer_data)
         self.test_center = customer_data.get('main_test_center')
         self.driving_licence_number = customer_data.get('driving_licence_number')
         self.test_ref = customer_data.get('test_ref')
@@ -83,7 +84,6 @@ class DVSACrawler:
             self.driver.get(self.URL)
 
             if self.is_ip_banned():
-                print('ip banned')
                 return
 
             self.solve_captcha()
@@ -105,22 +105,21 @@ class DVSACrawler:
 #            print(data_journey)
 
             if not self.are_there_available_dates():
-                print("there are no available dates")
+                logger.debug("there are no available dates")
                 if self.CHANGE_TEST_CENTER:
-                    print(f"changing test center to {self.test_center}")
+                    logger.info(f"changing test center to {self.test_center}")
                     self.change_test_center()
                 else:
                     return
 
 
-            print("\n\n ########################## \n\n")
             url = f'http://localhost:8000/api/add-available-dates/{self.test_center}'
             payload = self.get_dates()
 
-            print(payload)
+            logger.debug(payload)
 
             r = requests.post(url, json=payload)
-            print(r.status_code)
+            logger.debug(r.status_code)
 
             #calendar
 #            if data_journey == "pp-change-practical-driving-test-public:choose-alternative-test-centre":
@@ -154,12 +153,12 @@ class DVSACrawler:
         available_days = slot_picker_ul.find_elements_by_tag_name('li')
         
         dates = {}
-        print("available days: ", len(available_days))
+        logger.info("available days: ", len(available_days))
         for available_day in available_days:
             labels = available_day.find_elements_by_tag_name('label')
             date = available_day.get_attribute('id')
             date = date[5:]
-            print("getting date :", date)
+            logger.info("getting date :", date)
             for label in labels:
                 time_ = label.find_element_by_xpath('.//strong[@class="SlotPicker-time"]').get_attribute('innerHTML')
 
@@ -214,7 +213,7 @@ class DVSACrawler:
         try:
             WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '//div[@id="main_c"]')))
         except:
-            print('no queue')
+            logger.info('no queue')
             self.driver.switch_to.default_content()
 
         licence_number_textfield = WebDriverWait(self.driver, 180).until(
@@ -236,9 +235,9 @@ class DVSACrawler:
 
     
     def get_captcha_solution(self, data_sitekey):
-        print('solving')
+        logger.info('Solving Captcha')
         result = solver.recaptcha(sitekey=data_sitekey, url=self.URL)
-        print('solved')
+        logger.info('Captcha Solved')
 
         return result.get('code')
         #return "123456"
@@ -249,12 +248,12 @@ class DVSACrawler:
         try:
             error = self.driver.find_element_by_xpath('//div[@class="error-title"]')
             if error.get_attribute('textContent') == 'Access denied':
-                print('IP IS BANNED')
+                logger.error('Ip is banned')
                 return True
-            print('not banned')
+            logger.debug('Ip is not banned')
             return False
         except:
-            print('not banned')
+            logger.debug('Ip is not banned')
             return False
         finally:
             self.driver.switch_to.default_content()
