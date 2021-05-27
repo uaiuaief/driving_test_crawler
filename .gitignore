@@ -4,3 +4,4 @@ venv/
 **.swo
 geckodriver.log
 __pycache__
+var/
