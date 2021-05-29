@@ -36,12 +36,17 @@ class DVSACrawler:
     driver = None
 
     def __init__(self):
-        r = requests.get('http://localhost:8000/api/customer/1/')
+        r = requests.get('http://localhost:8000/api/customers/SINHA955238IA9WL/')
         customer_data = r.json()
+
         logger.debug(customer_data)
-        self.test_center = customer_data.get('main_test_center')
-        self.driving_licence_number = customer_data.get('driving_licence_number')
-        self.test_ref = customer_data.get('test_ref')
+#        self.test_center = customer_data.get('main_test_center')
+#        self.driving_licence_number = customer_data.get('driving_licence_number')
+#        self.test_ref = customer_data.get('test_ref')
+        self.driving_licence_number = 'SINHA955238IA9WL'
+        self.test_ref = '45813588'
+        self.test_center = 'Worksop'
+
 
 
     def is_customer_info_valid(self):
@@ -116,10 +121,10 @@ class DVSACrawler:
             url = f'http://localhost:8000/api/add-available-dates/{self.test_center}'
             payload = self.get_dates()
 
-            logger.debug(payload)
+            #logger.debug(payload)
 
             r = requests.post(url, json=payload)
-            logger.debug(r.status_code)
+            #logger.debug(r.status_code)
 
             #calendar
 #            if data_journey == "pp-change-practical-driving-test-public:choose-alternative-test-centre":
@@ -153,16 +158,17 @@ class DVSACrawler:
         available_days = slot_picker_ul.find_elements_by_tag_name('li')
         
         dates = {}
-        logger.info("available days: ", len(available_days))
+        #logger.info("available days: ", len(available_days))
         for available_day in available_days:
             labels = available_day.find_elements_by_tag_name('label')
             date = available_day.get_attribute('id')
             date = date[5:]
-            logger.info("getting date :", date)
+            #logger.info("getting date :", date)
+            print(f"getting date: {date}")
             for label in labels:
                 time_ = label.find_element_by_xpath('.//strong[@class="SlotPicker-time"]').get_attribute('innerHTML')
 
-                #print("getting time :", time)
+                print("getting time: ", time_)
                 #dates.append(f"{date} :: {time}")
                 time_ = self.to_military_time(time_)
 
@@ -202,6 +208,7 @@ class DVSACrawler:
         sitekey = element.get_attribute('data-sitekey')
 
         solution = self.get_captcha_solution(sitekey)
+        print(solution)
 
         text_field = self.driver.find_element_by_xpath('//textarea[@class="g-recaptcha-response"]')
         self.driver.execute_script(f"arguments[0].innerText = '{solution}'", text_field)
@@ -211,7 +218,7 @@ class DVSACrawler:
 
     def login(self):
         try:
-            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '//div[@id="main_c"]')))
+            WebDriverWait(self.driver, 40).until(EC.presence_of_element_located((By.XPATH, '//div[@id="main_c"]')))
         except:
             logger.info('no queue')
             self.driver.switch_to.default_content()
