@@ -1,3 +1,4 @@
+import sys
 import os
 import time
 import requests
@@ -15,6 +16,7 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
 from captcha_solver import solver
 from config import logger
+import models
 
 
 def close_driver(func):
@@ -30,60 +32,38 @@ def close_driver(func):
 
 
 class DVSACrawler:
+    WAIT_QUEUE_PRESENCE_TIME = 20
+    MAIN_WAITING_TIME = 60
+    WAIT_ON_QUEUE_TIME = 180
+
     URL = "https://driverpracticaltest.dvsa.gov.uk/login"
     CHANGE_TEST_CENTER = True
 
     driver = None
 
-    def __init__(self):
+    def __init__(self, proxy=None):
         r = requests.get('http://localhost:8000/api/customers/SINHA955238IA9WL/')
-        customer_data = r.json()
+        self.customer = models.Customer(r.json())
+        self.proxy = proxy
+        logger.debug(self.customer)
 
-        logger.debug(customer_data)
-#        self.test_center = customer_data.get('main_test_center')
-#        self.driving_licence_number = customer_data.get('driving_licence_number')
-#        self.test_ref = customer_data.get('test_ref')
-        self.driving_licence_number = 'SINHA955238IA9WL'
-        self.test_ref = '45813588'
-        self.test_center = 'Worksop'
-
-
-
-    def is_customer_info_valid(self):
-        options = Options()
-        profile = webdriver.FirefoxProfile()
-
-        user_agent = headers.get_user_agent()
-        profile.set_preference("general.useragent.override", user_agent)
-        
-        with webdriver.Firefox(profile, options=options) as driver:
-            self.driver = driver
-
-            self.driver.get(self.URL)
-
-            self.solve_captcha()
-            self.login()
-
-            try:
-                WebDriverWait(driver, 30).until(
-                        EC.presence_of_element_located((By.XPATH, '//div[@data-journey="pp-change-practical-driving-test-public:change-booking"]')))
-
-                API.validate_customer_info('1')
-                return True
-            except TimeoutException as e:
-                API.invalidate_customer_info('1')
-                return False
 
     def scrape(self):
-        options = Options()
-        profile = webdriver.FirefoxProfile()
+        if self.proxy:
+            logger.info(f"Proxy: {self.proxy}")
+            webdriver.DesiredCapabilities.FIREFOX['proxy'] = {
+                    "httpProxy": self.proxy,
+                    "ftpProxy": self.proxy,
+                    "sslProxy": self.proxy,
+                    "proxyType": "MANUAL",
+                    }
+        else:
+            logger.info(f"No Proxy")
 
-        user_agent = headers.get_user_agent()
-        profile.set_preference("general.useragent.override", user_agent)
         
-        #with webdriver.Firefox(profile, options=options) as driver:
+        #with webdriver.Firefox(self.get_profile(), options=self.get_options()) as driver:
         if True:
-            driver = webdriver.Firefox(profile, options=options)
+            driver = webdriver.Firefox(self.get_profile(), options=self.get_options())
             self.driver = driver
 
             self.driver.get(self.URL)
@@ -97,7 +77,7 @@ class DVSACrawler:
 
             ##
 
-            earliest_date_radial_button = WebDriverWait(driver, 20).until(
+            earliest_date_radial_button = WebDriverWait(driver, self.MAIN_WAITING_TIME).until(
                     EC.presence_of_element_located((By.XPATH, '//input[@id="test-choice-earliest"]')))
 
             earliest_date_radial_button.click()
@@ -112,13 +92,13 @@ class DVSACrawler:
             if not self.are_there_available_dates():
                 logger.debug("there are no available dates")
                 if self.CHANGE_TEST_CENTER:
-                    logger.info(f"changing test center to {self.test_center}")
+                    logger.info(f"changing test center to {self.customer.main_test_center.name}")
                     self.change_test_center()
                 else:
                     return
 
 
-            url = f'http://localhost:8000/api/add-available-dates/{self.test_center}'
+            url = f'http://localhost:8000/api/add-available-dates/{self.customer.main_test_center.name}'
             payload = self.get_dates()
 
             #logger.debug(payload)
@@ -136,8 +116,51 @@ class DVSACrawler:
 #            elif data_journey == "pp-change-practical-driving-test-public:choose-available-test":
 #                print("CHOOSE DATE PAGE")
 #
+    def get_profile(self):
+        user_agent = headers.get_user_agent()
+        profile = webdriver.FirefoxProfile()
+        profile.set_preference('dom.ipc.plugins.enabled.libflashplayer.so',False)
+        profile.set_preference("media.peerconnection.enabled", False)
+        profile.set_preference("general.useragent.override", user_agent)
+        profile.update_preferences()
+
+        return profile
+
+    def get_options(self):
+        options = Options()
+
+        return options
+
+    def is_customer_info_valid(self):
+        options = Options()
+        profile = webdriver.FirefoxProfile()
+        profile.set_preference('dom.ipc.plugins.enabled.libflashplayer.so',False)
+        profile.set_preference("media.peerconnection.enabled", False)
+        profile.update_preferences()
+
+        user_agent = headers.get_user_agent()
+        profile.set_preference("general.useragent.override", user_agent)
+        
+        with webdriver.Firefox(profile, options=options) as driver:
+            self.driver = driver
+
+            self.driver.get(self.URL)
+
+            self.solve_captcha()
+            self.login()
+
+            try:
+                WebDriverWait(driver, self.MAIN_WAITING_TIME).until(
+                        EC.presence_of_element_located((By.XPATH, '//div[@data-journey="pp-change-practical-driving-test-public:change-booking"]')))
+
+                #API.validate_customer_info('1')
+                return True
+            except TimeoutException as e:
+                #API.invalidate_customer_info('1')
+                return False
+
     def are_there_available_dates(self):
-        change_date_main_div = WebDriverWait(self.driver, 20).until(
+        change_date_main_div = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
                 EC.presence_of_element_located((By.XPATH, '//div[@id="page"]')))
 
         data_journey = change_date_main_div.get_attribute('data-journey')
@@ -152,7 +175,7 @@ class DVSACrawler:
         return datetime.strptime(time, '%I:%M%p').strftime('%H:%M')
 
     def get_dates(self):
-        slot_picker_ul = WebDriverWait(self.driver, 20).until(
+        slot_picker_ul = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
                 EC.presence_of_element_located((By.XPATH, '//ul[@class="SlotPicker-days"]')))
 
         available_days = slot_picker_ul.find_elements_by_tag_name('li')
@@ -181,22 +204,22 @@ class DVSACrawler:
         return {'dates' : dates}
     
     def change_test_center(self):
-        change_button = WebDriverWait(self.driver, 20).until(
+        change_button = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
                 EC.presence_of_element_located((By.XPATH, '//a[@id="change-test-centre"]')))
         
         change_button.click()
 
-        test_center_input = WebDriverWait(self.driver, 20).until(
+        test_center_input = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
                 EC.presence_of_element_located((By.XPATH, '//input[@id="test-centres-input"]')))
 
         test_center_input.clear()
-        test_center_input.send_keys(self.test_center)
+        test_center_input.send_keys(self.customer.main_test_center.name)
         test_center_input.submit()
 
-        test_center_list = WebDriverWait(self.driver, 20).until(
+        test_center_list = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
                 EC.presence_of_element_located((By.XPATH, '//ul[@class="test-centre-results"]')))
 
-        test_center_list.find_element_by_link_text(self.test_center).click()
+        test_center_list.find_element_by_link_text(self.customer.main_test_center.name).click()
 
 
 
@@ -218,24 +241,24 @@ class DVSACrawler:
 
     def login(self):
         try:
-            WebDriverWait(self.driver, 40).until(EC.presence_of_element_located((By.XPATH, '//div[@id="main_c"]')))
+            WebDriverWait(self.driver, self.WAIT_QUEUE_PRESENCE_TIME).until(
+                    EC.presence_of_element_located((By.XPATH, '//div[@id="main_c"]')))
         except:
             logger.info('no queue')
             self.driver.switch_to.default_content()
 
-        licence_number_textfield = WebDriverWait(self.driver, 180).until(
-                EC.presence_of_element_located((By.XPATH, '//input[@id="driving-licence-number"]'))
-                )
+        licence_number_textfield = WebDriverWait(self.driver, self.WAIT_ON_QUEUE_TIME).until(
+                EC.presence_of_element_located((By.XPATH, '//input[@id="driving-licence-number"]')))
 
         reference_number_textfield = self.driver.find_element_by_xpath('//input[@id="application-reference-number"]')
         continue_button = self.driver.find_element_by_xpath('//input[@id="booking-login"]')
 
-        licence_number_textfield.send_keys(self.driving_licence_number)
-        reference_number_textfield.send_keys(self.test_ref)
+        licence_number_textfield.send_keys(self.customer.driving_licence_number)
+        reference_number_textfield.send_keys(self.customer.test_ref)
         continue_button.click()
 
     def go_to_change_date_page(self):
-        change_date_button = WebDriverWait(self.driver, 20).until(
+        change_date_button = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
                 EC.presence_of_element_located((By.XPATH, '//a[@id="date-time-change"]')))
 
         change_date_button.click()
@@ -247,7 +270,6 @@ class DVSACrawler:
         logger.info('Captcha Solved')
 
         return result.get('code')
-        #return "123456"
 
     def is_ip_banned(self):
         iframe = self.driver.find_element_by_xpath('//iframe[@id="main-iframe"]')

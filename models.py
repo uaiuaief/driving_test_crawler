@@ -34,6 +34,9 @@ class Customer(BaseClass):
         self.info_validation = data['info_validation']
         self.acceptable_time_ranges = data['acceptable_time_ranges']
 
+    def __str__(self):
+        return f"{self.driving_licence_number} ::: {self.test_ref}"
+
     @staticmethod
     def from_json(json_string):
         data = json.loads(json_string)
