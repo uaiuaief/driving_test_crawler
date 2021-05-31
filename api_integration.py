@@ -37,7 +37,7 @@ def fetch_next_crawl():
     full_url = f"{URL}/{endpoint}/"
     logger.debug(f'fetching: {full_url}')
     r = requests.get(full_url)
-    r.raise_for_status()
+    #r.raise_for_status()
 
     if r.status_code == 200:
         return r.json()

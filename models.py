@@ -66,7 +66,10 @@ class Customer(BaseClass):
 
     @latest_test_date.setter
     def latest_test_date(self, value):
-        self._latest_test_date = datetime.strptime(value, '%Y-%m-%d').date()
+        if value:
+            self._latest_test_date = datetime.strptime(value, '%Y-%m-%d').date()
+        else:
+            self._latest_test_date = None
 
     @property
     def acceptable_time_ranges(self):

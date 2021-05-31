@@ -41,9 +41,9 @@ class DVSACrawler:
 
     driver = None
 
-    def __init__(self, proxy=None):
-        r = requests.get('http://localhost:8000/api/customers/SINHA955238IA9WL/')
-        self.customer = models.Customer(r.json())
+    def __init__(self, customer, proxy=None):
+        #r = requests.get('http://localhost:8000/api/customers/SINHA955238IA9WL/')
+        self.customer = customer
         self.proxy = proxy
         logger.debug(self.customer)
 
@@ -230,10 +230,12 @@ class DVSACrawler:
         element = self.driver.find_element_by_xpath('//div[@class="g-recaptcha"]')
         sitekey = element.get_attribute('data-sitekey')
 
+        text_field = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
+                EC.presence_of_element_located((By.XPATH, '//textarea[@class="g-recaptcha-response"]')))
+
         solution = self.get_captcha_solution(sitekey)
         print(solution)
 
-        text_field = self.driver.find_element_by_xpath('//textarea[@class="g-recaptcha-response"]')
         self.driver.execute_script(f"arguments[0].innerText = '{solution}'", text_field)
         self.driver.execute_script(f'onCaptchaFinished("{solution}")')
 
