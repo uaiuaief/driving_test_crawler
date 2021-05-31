@@ -32,7 +32,7 @@ def close_driver(func):
 
 
 class DVSACrawler:
-    WAIT_QUEUE_PRESENCE_TIME = 20
+    WAIT_QUEUE_PRESENCE_TIME = 5
     MAIN_WAITING_TIME = 60
     WAIT_ON_QUEUE_TIME = 180
 
@@ -40,6 +40,8 @@ class DVSACrawler:
     CHANGE_TEST_CENTER = True
 
     driver = None
+
+    display_slots_script = "document.getElementsByClassName('SlotPicker-timeSlots')[0].style.display = 'block'; els = document.getElementsByClassName('SlotPicker-day'); arr = Array.from(els); arr.map((each) => each.style.display = 'block');"
 
     def __init__(self, customer, proxy=None):
         #r = requests.get('http://localhost:8000/api/customers/SINHA955238IA9WL/')
@@ -98,24 +100,18 @@ class DVSACrawler:
                     return
 
 
-            url = f'http://localhost:8000/api/add-available-dates/{self.customer.main_test_center.name}'
-            payload = self.get_dates()
+            
+            self.driver.execute_script(self.display_slots_script)
+            self.auto_book()
+            #url = f'http://localhost:8000/api/add-available-dates/{self.customer.main_test_center.name}'
+            #payload = self.get_dates()
 
             #logger.debug(payload)
 
-            r = requests.post(url, json=payload)
+            #r = requests.post(url, json=payload)
             #logger.debug(r.status_code)
 
-            #calendar
-#            if data_journey == "pp-change-practical-driving-test-public:choose-alternative-test-centre":
-#                print("no available dates")
-#                if self.CHANGE_TEST_CENTER:
-#                    print(f"changing test center to {self.TEST_CENTER}")
-#                    self.change_test_center()
-#                return
-#            elif data_journey == "pp-change-practical-driving-test-public:choose-available-test":
-#                print("CHOOSE DATE PAGE")
-#
+
     def get_profile(self):
         user_agent = headers.get_user_agent()
         profile = webdriver.FirefoxProfile()
@@ -173,6 +169,83 @@ class DVSACrawler:
     
     def to_military_time(self, time):
         return datetime.strptime(time, '%I:%M%p').strftime('%H:%M')
+
+    def auto_book(self):
+        slot_picker_ul = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
+                EC.presence_of_element_located((By.XPATH, '//ul[@class="SlotPicker-days"]')))
+
+        available_days = slot_picker_ul.find_elements_by_tag_name('li')
+        
+        dates = {}
+        for available_day in available_days:
+            labels = available_day.find_elements_by_tag_name('label')
+            date = available_day.get_attribute('id')
+            date = date[5:]
+            if date and self.is_day_within_range(date):
+                labels = available_day.find_elements_by_tag_name('label')
+
+                for label in labels:
+                    time_element = label.find_element_by_xpath('.//strong[@class="SlotPicker-time"]')
+                    time_ = time_element.get_attribute('innerHTML')
+                    time_ = self.to_military_time(time_)
+
+                    print(time_, ' ', self.is_time_within_range(time_))
+                    if self.is_time_within_range(time_):
+                        print(time_)
+                        time_element.click()
+                        time_element.submit()
+                        continue_button = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
+                                EC.presence_of_element_located((By.XPATH, '//button[@id="slot-warning-continue"]')))
+                        time.sleep(5)
+                        continue_button.click()
+
+                        i_am_the_candidate_button = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
+                                EC.presence_of_element_located((By.XPATH, '//a[@id="i-am-candidate"]')))
+
+                        i_am_the_candidate_button.click()
+
+                        """DON'T CLICK THIS BUTTON OR IT WILL CHANGE THE CUSTOMER DATE"""
+                        #confirm_changes_button = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
+                        #        EC.presence_of_element_located((By.XPATH, '//input[@id="confirm-changes"]')))
+
+                        return
+
+                print(date, ' ~ ',self.is_day_within_range(date))
+
+    def is_time_within_range(self, time_str):
+        time_object = datetime.strptime(time_str, "%H:%M").time()
+        
+        if self.customer.acceptable_time_ranges:
+            for time_range in self.customer.acceptable_time_ranges:
+                if time_range.start_time < time_object < time_range.end_time:
+                    return True
+
+        return False
+
+    def is_day_within_range(self, date_str):
+        earliest = datetime(
+                self.customer.earliest_test_date.year,
+                self.customer.earliest_test_date.month,
+                self.customer.earliest_test_date.day,
+                )
+        
+        date_object = datetime.strptime(date_str, "%Y-%m-%d")
+        if date_object < earliest:
+            return False
+
+        if not self.customer.latest_test_date:
+            return True
+
+        latest = datetime(
+                self.customer.latest_test_date.year,
+                self.customer.latest_test_date.month,
+                self.customer.latest_test_date.day,
+                )
+
+        if date_object > latest:
+            return False
+        else:
+            return True
 
     def get_dates(self):
         slot_picker_ul = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
@@ -288,7 +361,6 @@ class DVSACrawler:
             return False
         finally:
             self.driver.switch_to.default_content()
-
 
 
 

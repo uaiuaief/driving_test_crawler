@@ -33,6 +33,7 @@ class Customer(BaseClass):
         self.latest_test_date = data['latest_test_date']
         self.info_validation = data['info_validation']
         self.acceptable_time_ranges = data['acceptable_time_ranges']
+        self.automatic_booking = data['automatic_booking']
 
     def __str__(self):
         return f"{self.driving_licence_number} ::: {self.test_ref}"
@@ -149,3 +150,5 @@ class TimeRange(BaseClass):
 #                }
 #            ]
 #        }
+
+

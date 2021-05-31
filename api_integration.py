@@ -30,7 +30,8 @@ def fetch_customer(customer_pk):
     full_url = f"{URL}/{endpoint}/{customer_pk}/"
     logger.debug(f'fetching: {full_url}')
     r = requests.get(full_url)
-    print(r.json())
+
+    return(r.json())
 
 def fetch_next_crawl():
     endpoint = f"proxy-customer-pair"
