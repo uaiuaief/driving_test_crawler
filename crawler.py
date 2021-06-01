@@ -32,14 +32,17 @@ def close_driver(func):
 
 
 class DVSACrawler:
-    WAIT_QUEUE_PRESENCE_TIME = 5
-    MAIN_WAITING_TIME = 60
+    WAIT_QUEUE_PRESENCE_TIME = 10
+    MAIN_WAITING_TIME = 20
     WAIT_ON_QUEUE_TIME = 180
+    WAIT_FOR_CAPTCHA_TIME = 3
 
     URL = "https://driverpracticaltest.dvsa.gov.uk/login"
     CHANGE_TEST_CENTER = True
 
     driver = None
+    current_test_date = None
+    captcha_solved = False
 
     display_slots_script = "document.getElementsByClassName('SlotPicker-timeSlots')[0].style.display = 'block'; els = document.getElementsByClassName('SlotPicker-day'); arr = Array.from(els); arr.map((each) => each.style.display = 'block');"
 
@@ -75,11 +78,14 @@ class DVSACrawler:
 
             self.solve_captcha()
             self.login()
+            self.set_current_test_date()
+            self.solve_captcha()
             self.go_to_change_date_page()
+            self.solve_captcha()
 
             ##
 
-            earliest_date_radial_button = WebDriverWait(driver, self.MAIN_WAITING_TIME).until(
+            earliest_date_radial_button = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
                     EC.presence_of_element_located((By.XPATH, '//input[@id="test-choice-earliest"]')))
 
             earliest_date_radial_button.click()
@@ -101,6 +107,7 @@ class DVSACrawler:
 
 
             
+            self.solve_captcha()
             self.driver.execute_script(self.display_slots_script)
             self.auto_book()
             #url = f'http://localhost:8000/api/add-available-dates/{self.customer.main_test_center.name}'
@@ -189,14 +196,14 @@ class DVSACrawler:
                     time_ = time_element.get_attribute('innerHTML')
                     time_ = self.to_military_time(time_)
 
-                    print(time_, ' ', self.is_time_within_range(time_))
-                    if self.is_time_within_range(time_):
+                    print(time_, ' ', self.is_time_within_range(time_, date))
+                    if self.is_time_within_range(time_, date):
                         print(time_)
                         time_element.click()
                         time_element.submit()
                         continue_button = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
                                 EC.presence_of_element_located((By.XPATH, '//button[@id="slot-warning-continue"]')))
-                        time.sleep(5)
+
                         continue_button.click()
 
                         i_am_the_candidate_button = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
@@ -212,13 +219,14 @@ class DVSACrawler:
 
                 print(date, ' ~ ',self.is_day_within_range(date))
 
-    def is_time_within_range(self, time_str):
+    def is_time_within_range(self, time_str, date_str):
         time_object = datetime.strptime(time_str, "%H:%M").time()
         
         if self.customer.acceptable_time_ranges:
             for time_range in self.customer.acceptable_time_ranges:
-                if time_range.start_time < time_object < time_range.end_time:
-                    return True
+                if time_range.start_time < time_object < time_range.end_time \
+                        and self.is_before_current_test_date(date_str, time_str):
+                            return True
 
         return False
 
@@ -246,6 +254,18 @@ class DVSACrawler:
             return False
         else:
             return True
+
+    def is_before_current_test_date(self, date_str, time_str):
+        date_object = datetime.strptime(date_str, "%Y-%m-%d")
+        time_object = datetime.strptime(time_str, "%H:%M").time()
+
+        if date_object.date() <= self.current_test_date.date():
+            if time_object < self.current_test_date.time():
+                return True
+            else:
+                return False
+        else:
+            return False
 
     def get_dates(self):
         slot_picker_ul = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
@@ -294,10 +314,28 @@ class DVSACrawler:
 
         test_center_list.find_element_by_link_text(self.customer.main_test_center.name).click()
 
+    
+    def find_captcha_element(self):
+        if self.captcha_solved:
+            return None
 
+        logger.debug('Checking reCAPTCHA presence')
+        try:
+            captcha_iframe = WebDriverWait(self.driver, self.WAIT_FOR_CAPTCHA_TIME).until(
+                    EC.presence_of_element_located((By.XPATH, '//iframe[@id="main-iframe"]')))
+
+            return captcha_iframe
+        except Exception as e:
+            logger.info('No captcha')
+
+            return None
 
     def solve_captcha(self):
-        iframe = self.driver.find_element_by_xpath('//iframe[@id="main-iframe"]')
+        iframe = self.find_captcha_element()
+
+        if not iframe:
+            return
+
         self.driver.switch_to.frame(iframe)
 
         element = self.driver.find_element_by_xpath('//div[@class="g-recaptcha"]')
@@ -311,6 +349,7 @@ class DVSACrawler:
 
         self.driver.execute_script(f"arguments[0].innerText = '{solution}'", text_field)
         self.driver.execute_script(f'onCaptchaFinished("{solution}")')
+        self.captcha_solved = True
 
         self.driver.switch_to.default_content()
 
@@ -347,7 +386,11 @@ class DVSACrawler:
         return result.get('code')
 
     def is_ip_banned(self):
-        iframe = self.driver.find_element_by_xpath('//iframe[@id="main-iframe"]')
+        iframe = self.find_captcha_element()
+
+        if not iframe:
+            return False
+
         self.driver.switch_to_frame(iframe)
         try:
             error = self.driver.find_element_by_xpath('//div[@class="error-title"]')
@@ -362,5 +405,11 @@ class DVSACrawler:
         finally:
             self.driver.switch_to.default_content()
 
+    def set_current_test_date(self):
+        el = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
+                EC.presence_of_element_located((By.XPATH, '//section[@id="confirm-booking-details"]/section[1]/div/dl/dd[1]')))
+
+        el_text = el.get_attribute('textContent')
+        self.current_test_date = datetime.strptime(el_text, "%A %d %B %Y %I:%M%p")
 
 

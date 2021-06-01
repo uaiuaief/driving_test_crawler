@@ -1,0 +1,60 @@
+1 lookup = 7 requests + 4 * additional test centers
+
+7 ~ 19 requests / customer
+
+21 lookups per proxy per hour ~= 400 requests per hour
+
+
+1 look up every 5 minutes = 12 lookups per hour
+for 100 customers = 1200 lookups per hour = 22.800 requests
+
+keeping a healthy 400 requests per hour for each proxy that would mean ~57 proxies
+pushing a little bit to 500 requests per hour for each proxy that would mean ~45 proxies
+
+so an average of 50 proxies for 100 customers, so 2 customers per proxy
+
+
+
+# PRIVATE PROXIES
+
+https://proxybonanza.com/en/exclusive-proxy/custom
+50 IPs = $167.00 / month
+
+https://www.squidproxies.com/private-proxies
+50 IPs = $87.00 / month
+
+https://blazingseollc.com/pricing/
+(UK) 50 dedicated IPs = $125.00 / month -- $2.50
+(UK) 50 semi-dedicated IPs = $50.00 / month -- $1.00 (shared between 3 people)
+
+(USA) 50 dedicated IPs = $70.00 / month -- $1.40/ip
+(USA) 50 semi-dedicated IPs = $30.00 / month -- $0.60/ip (shared between 3 people)
+(USA) 100 semi-dedicated IPs = $57.00 / month -- $0.60/ip (shared between 3 people)
+
+
+# ROTATING PROXIES
+
+https://rotatingproxies.com/pricing
+50 IPs = $249.00 / month
+
+https://www.proxyrack.com/unmetered-residential/
+100 residential IPs = $80.00 / month
+
+https://www.proxyrack.com/mixed-rotating-proxies/
+100 datacenter IPs = $65.00 / month
+
+
+----------------------------------------------------------------------------------------------------
+
+CAPTCHA
+
+Crawling every 5 minutes, 16 hours per day for 30 months = 12 * 16 * 30 = 5760 look ups per month,
+at $3.00 for every 1000 reCAPTCHAS would cost $17.28 per customer per month, so for 100 customers that would mean $1728.00 / month
+That is assuming every request would mean solving a reCAPTCHA. In my experience with my IP I had to solve a captcha every time
+I tried to look up the dates, but with good proxies that may not be the case.
+
+
+
+
+
+

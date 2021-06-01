@@ -8,12 +8,7 @@ import json
 import multiprocessing as mp
 import time
 import models
-
-
-proxies = []
-with open('utils/valid.txt', 'r') as f:
-    for each in f.readlines():
-        proxies.append(each.strip())
+import api_integration as API
 
 
 #""" MULTI PROCESS """
@@ -28,7 +23,6 @@ with open('utils/valid.txt', 'r') as f:
 #    for each in procs:
 #        each.join()
 
-import api_integration as API
 
 response = API.fetch_next_crawl()
 
@@ -39,8 +33,8 @@ if response:
     proxy = response.get('proxy')
 
     #c = DVSACrawler(random.choice(proxies))
-    #c = DVSACrawler(customer, proxy['ip'])
-    c = DVSACrawler(customer)
+    c = DVSACrawler(customer, proxy['ip'])
+    #c = DVSACrawler(customer)
     c.scrape()
 
 else:
