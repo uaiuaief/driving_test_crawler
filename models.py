@@ -29,7 +29,8 @@ class Customer(BaseClass):
         profile = data['profile']
         self.driving_licence_number = profile['driving_licence_number']
         self.test_ref = profile['test_ref']
-        self.main_test_center = TestCenter(profile['main_test_center'])
+        #self.main_test_center = TestCenter(profile['main_test_center'])
+        self.test_centers = profile['test_centers']
         self.recent_test_failure = profile.get('recent_test_failure')
         self.earliest_test_date = profile['earliest_test_date']
         self.latest_test_date = profile['latest_test_date']
@@ -46,6 +47,18 @@ class Customer(BaseClass):
         data = json.loads(json_string)
 
         return Customer(data)
+
+    @property
+    def test_centers(self):
+        return self._test_centers
+
+    @test_centers.setter
+    def test_centers(self, value):
+        arr = []
+        for each in value:
+            arr.append(TestCenter(each))
+
+        self._test_centers = arr
 
     @property
     def recent_test_failure(self):
@@ -84,7 +97,7 @@ class Customer(BaseClass):
         if value == "null":
             self._earliest_time = None
         else:
-            self._earliest_time = value
+            self._earliest_time = datetime.strptime(value, '%H:%M:%S').time()
 
     @property
     def latest_time(self):
@@ -95,7 +108,7 @@ class Customer(BaseClass):
         if value == "null":
             self._latest_time = None
         else:
-            self._latest_time = value
+            self._latest_time = datetime.strptime(value, '%H:%M:%S').time()
 
 
 class TestCenter(BaseClass):

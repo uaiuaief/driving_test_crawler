@@ -25,14 +25,6 @@ def add_dates(test_center, dates):
     logger.info(r.text)
     r.raise_for_status()
 
-def fetch_customer(customer_pk):
-    endpoint = f"customers"
-    full_url = f"{URL}/{endpoint}/{customer_pk}/"
-    logger.debug(f'fetching: {full_url}')
-    r = requests.get(full_url)
-
-    return(r.json())
-
 def fetch_next_crawl():
     endpoint = f"proxy-customer-pair"
     full_url = f"{URL}/{endpoint}/"

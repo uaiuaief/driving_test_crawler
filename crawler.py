@@ -50,10 +50,12 @@ class DVSACrawler:
         #r = requests.get('http://localhost:8000/api/customers/SINHA955238IA9WL/')
         self.customer = customer
         self.proxy = proxy
+        #self.proxy = None
         logger.debug(self.customer)
 
 
     def scrape(self):
+        logger.warn('TEST CENTER IS HARDCODED TO WORKSOP, CHANGE THIS LATER')
         if self.proxy:
             logger.info(f"Proxy: {self.proxy}")
             webdriver.DesiredCapabilities.FIREFOX['proxy'] = {
@@ -76,8 +78,8 @@ class DVSACrawler:
             if self.is_ip_banned():
                 return
 
-            self.solve_captcha()
             self.login()
+            self.solve_captcha()
             self.set_current_test_date()
             self.solve_captcha()
             self.go_to_change_date_page()
@@ -97,26 +99,31 @@ class DVSACrawler:
 #            data_journey = change_date_main_div.get_attribute('data-journey')
 #            print(data_journey)
 
-            if not self.are_there_available_dates():
+            if self.are_there_available_dates():
+                self.driver.execute_script(self.display_slots_script)
+                self.auto_book()
+            else:
                 logger.debug("there are no available dates")
-                if self.CHANGE_TEST_CENTER:
-                    logger.info(f"changing test center to {self.customer.main_test_center.name}")
-                    self.change_test_center()
-                else:
-                    return
-
-
+                for each in self.customer.test_centers:
+                    test_center_name = each.name
+                    logger.info(f"changing test center to {test_center_name}")
+                    self.change_test_center(test_center_name)
             
-            self.solve_captcha()
-            self.driver.execute_script(self.display_slots_script)
-            self.auto_book()
-            #url = f'http://localhost:8000/api/add-available-dates/{self.customer.main_test_center.name}'
-            #payload = self.get_dates()
+                    self.solve_captcha()
 
-            #logger.debug(payload)
+                    if self.are_there_available_dates():
+                        self.driver.execute_script(self.display_slots_script)
+                        self.auto_book()
+                    else:
+                        logger.debug("there are no available dates")
+                    #url = f'http://localhost:8000/api/add-available-dates/{self.customer.main_test_center.name}'
+                    #payload = self.get_dates()
 
-            #r = requests.post(url, json=payload)
-            #logger.debug(r.status_code)
+                    #logger.debug(payload)
+
+                    #r = requests.post(url, json=payload)
+                    #logger.debug(r.status_code)
+
 
 
     def get_profile(self):
@@ -222,13 +229,41 @@ class DVSACrawler:
     def is_time_within_range(self, time_str, date_str):
         time_object = datetime.strptime(time_str, "%H:%M").time()
         
-        if self.customer.acceptable_time_ranges:
-            for time_range in self.customer.acceptable_time_ranges:
-                if time_range.start_time < time_object < time_range.end_time \
-                        and self.is_before_current_test_date(date_str, time_str):
-                            return True
+        """
+        Is the time that whas found before the initial time that the
+        customer can go to the test?
+        """
+        if self.customer.earliest_time:
+            if time_object > self.customer.earliest_time:
+                is_after_earliest_time = True
+            else:
+                is_after_earliest_time = False
+        else:
+            is_after_earliest_time = True
 
-        return False
+
+        """
+        Is the time that was found after the latest time that the
+        customer can go to the test?
+        """
+        if self.customer.latest_time:
+            if time_object < self.customer.latest_time:
+                is_before_latest_time = True
+            else:
+                is_before_latest_time = False
+        else:
+            is_before_latest_time = True
+
+
+        """
+        Is the new date before the current booked date?
+        """
+        if is_after_earliest_time \
+                and is_before_latest_time \
+                and self.is_before_current_test_date(date_str, time_str):
+                    return True
+        else:
+            return False
 
     def is_day_within_range(self, date_str):
         earliest = datetime(
@@ -296,7 +331,7 @@ class DVSACrawler:
         #pprint.pprint(dates)
         return {'dates' : dates}
     
-    def change_test_center(self):
+    def change_test_center(self, test_center_name):
         change_button = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
                 EC.presence_of_element_located((By.XPATH, '//a[@id="change-test-centre"]')))
         
@@ -306,13 +341,13 @@ class DVSACrawler:
                 EC.presence_of_element_located((By.XPATH, '//input[@id="test-centres-input"]')))
 
         test_center_input.clear()
-        test_center_input.send_keys(self.customer.main_test_center.name)
+        test_center_input.send_keys(test_center_name)
         test_center_input.submit()
 
         test_center_list = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
                 EC.presence_of_element_located((By.XPATH, '//ul[@class="test-centre-results"]')))
 
-        test_center_list.find_element_by_link_text(self.customer.main_test_center.name).click()
+        test_center_list.find_element_by_link_text(test_center_name).click()
 
     
     def find_captcha_element(self):
@@ -355,14 +390,20 @@ class DVSACrawler:
 
     def login(self):
         try:
+            self.solve_captcha()
+            logger.info('waiting queue presence')
             WebDriverWait(self.driver, self.WAIT_QUEUE_PRESENCE_TIME).until(
                     EC.presence_of_element_located((By.XPATH, '//div[@id="main_c"]')))
         except:
+            self.solve_captcha()
             logger.info('no queue')
             self.driver.switch_to.default_content()
 
+        logger.info('waiting on queue')
         licence_number_textfield = WebDriverWait(self.driver, self.WAIT_ON_QUEUE_TIME).until(
                 EC.presence_of_element_located((By.XPATH, '//input[@id="driving-licence-number"]')))
+
+        self.solve_captcha()
 
         reference_number_textfield = self.driver.find_element_by_xpath('//input[@id="application-reference-number"]')
         continue_button = self.driver.find_element_by_xpath('//input[@id="booking-login"]')

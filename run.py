@@ -1,9 +1,10 @@
 from crawler import DVSACrawler
 import logging
-from proxylist import proxies
+from config import logger
 import random
 import os
 import json
+from pprint import pprint
 #import threading
 import multiprocessing as mp
 import time
@@ -25,20 +26,20 @@ import api_integration as API
 
 
 response = API.fetch_next_crawl()
-print(response)
+pprint(response)
 
-if not response.get('error'):
-    #data = json.loads(response)
+if response:
+    if response.get('error'):
+        logger.info(response['error'])
+    else:
+        #data = json.loads(response)
 
-    customer = models.Customer(response.get('customer'))
-    proxy = response.get('proxy')
+        customer = models.Customer(response.get('customer'))
+        proxy = response.get('proxy')
 
-    #c = DVSACrawler(random.choice(proxies))
-    c = DVSACrawler(customer, proxy['ip'])
-    #c = DVSACrawler(customer)
-    c.scrape()
-
+        #c = DVSACrawler(random.choice(proxies))
+        c = DVSACrawler(customer, proxy['ip'])
+        #c = DVSACrawler(customer)
+        c.scrape()
 else:
-    print('no customer or proxies available')
-
-
+    logger.info('no response')
