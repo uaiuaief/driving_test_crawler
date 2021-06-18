@@ -25,8 +25,9 @@ import api_integration as API
 
 
 response = API.fetch_next_crawl()
+print(response)
 
-if response:
+if not response.get('error'):
     #data = json.loads(response)
 
     customer = models.Customer(response.get('customer'))

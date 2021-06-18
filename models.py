@@ -25,15 +25,18 @@ class BaseClass:
 
 class Customer(BaseClass):
     def __init__(self, data):
-        self.driving_licence_number = data['driving_licence_number']
-        self.test_ref = data['test_ref']
-        self.main_test_center = TestCenter(data['main_test_center'])
-        self.recent_test_failure = data.get('recent_test_failure')
-        self.earliest_test_date = data['earliest_test_date']
-        self.latest_test_date = data['latest_test_date']
-        self.info_validation = data['info_validation']
-        self.acceptable_time_ranges = data['acceptable_time_ranges']
-        self.automatic_booking = data['automatic_booking']
+        self.id = data['id']
+        profile = data['profile']
+        self.driving_licence_number = profile['driving_licence_number']
+        self.test_ref = profile['test_ref']
+        self.main_test_center = TestCenter(profile['main_test_center'])
+        self.recent_test_failure = profile.get('recent_test_failure')
+        self.earliest_test_date = profile['earliest_test_date']
+        self.latest_test_date = profile['latest_test_date']
+        self.earliest_time = profile['earliest_time']
+        self.latest_time = profile['latest_time']
+        self.info_validation = profile['info_validation']
+        self.automatic_booking = profile['automatic_booking']
 
     def __str__(self):
         return f"{self.driving_licence_number} ::: {self.test_ref}"
@@ -73,48 +76,32 @@ class Customer(BaseClass):
             self._latest_test_date = None
 
     @property
-    def acceptable_time_ranges(self):
-        return self._acceptable_time_ranges
+    def earliest_time(self):
+        return self._earliest_time
 
-    @acceptable_time_ranges.setter
-    def acceptable_time_ranges(self, arr):
-        if not arr:
-            self._acceptable_time_ranges = []
+    @earliest_time.setter
+    def earliest_time(self, value):
+        if value == "null":
+            self._earliest_time = None
+        else:
+            self._earliest_time = value
 
-            return
+    @property
+    def latest_time(self):
+        return self._latest_time
 
-        self._acceptable_time_ranges = [TimeRange(each) for each in arr]
-
-        return
+    @latest_time.setter
+    def latest_time(self, value):
+        if value == "null":
+            self._latest_time = None
+        else:
+            self._latest_time = value
 
 
 class TestCenter(BaseClass):
     def __init__(self, data):
         self.id = data['id']
         self.name = data['name']
-
-class TimeRange(BaseClass):
-    def __init__(self, data):
-        self.start_time = data['start_time']
-        self.end_time = data['end_time']
-    
-    @property
-    def start_time(self):
-        return self._start_time
-    
-    @start_time.setter
-    def start_time(self, value):
-        self._start_time = datetime.strptime(value, '%H:%M:%S').time()
-        
-    @property
-    def end_time(self):
-        return self._end_time
-    
-    @end_time.setter
-    def end_time(self, value):
-        self._end_time = datetime.strptime(value, '%H:%M:%S').time()
-
-
 
 
 #test_data = {
