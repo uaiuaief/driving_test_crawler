@@ -5,24 +5,28 @@ from config import logger
 URL = 'http://localhost:8000/api'
 
 def validate_customer_info(customer_pk):
-    endpoint = f"customers"
-    full_url = f"{URL}/{endpoint}/{customer_pk}/"
-    logger.debug(f'fetching: {full_url}')
-    r = requests.patch(full_url, json={'info_validation':'valid'})
-    r.raise_for_status()
+    _set_customer_info(customer_pk, 'valid')
 
 def invalidate_customer_info(customer_pk):
-    endpoint = f"customers"
-    full_url = f"{URL}/{endpoint}/{customer_pk}/"
+    _set_customer_info(customer_pk, 'invalid')
+
+def _set_customer_info(customer_pk, value):
+    endpoint = f"set-user-info-validation"
+    full_url = f"{URL}/{endpoint}/"
     logger.debug(f'fetching: {full_url}')
-    r = requests.patch(full_url, json={'info_validation':'invalid'})
+    r = requests.post(full_url, json={
+        'user_id': customer_pk,
+        'info_validation': value
+        })
     r.raise_for_status()
 
-def add_dates(test_center, dates):
-    endpoint = f"add-available-dates"
-    full_url = f"{URL}/{endpoint}/{test_center}/"
-    r = requests.post(full_url, json=dates)
-    logger.info(r.text)
+def ban_proxy(ip):
+    endpoint = f"ban-proxy"
+    full_url = f"{URL}/{endpoint}/"
+    logger.debug(f'fetching: {full_url}')
+    r = requests.post(full_url, json={
+        'ip': ip,
+        })
     r.raise_for_status()
 
 def fetch_next_crawl():
@@ -36,7 +40,4 @@ def fetch_next_crawl():
         return r.json()
     else: 
         return None
-
-
-
 

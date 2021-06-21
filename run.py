@@ -1,3 +1,4 @@
+import sys
 from crawler import DVSACrawler
 import logging
 from config import logger
@@ -12,34 +13,64 @@ import models
 import api_integration as API
 
 
-#""" MULTI PROCESS """
-#if __name__ == "__main__":
-#    procs = []
-#    for i in range(4):
-#        c = DVSACrawler(random.choice(proxies))
-#        p = mp.Process(target=c.scrape)
-#        procs.append(p)
-#        p.start()
-#    
-#    for each in procs:
-#        each.join()
+def get_next_crawl():
+    response = API.fetch_next_crawl()
 
+    if response:
+        if response.get('error'):
+            logger.info(response['error'])
+            return None
+        else:
+            #data = json.loads(response)
+            customer = models.Customer(response.get('customer'))
+            proxy = response.get('proxy')
 
-response = API.fetch_next_crawl()
-pprint(response)
+            return (customer, proxy['ip'])
 
-if response:
-    if response.get('error'):
-        logger.info(response['error'])
+            #c = DVSACrawler(random.choice(proxies))
+            #c = DVSACrawler(customer, proxy['ip'])
+            #c = DVSACrawler(customer)
+            #c.scrape()
     else:
-        #data = json.loads(response)
+        logger.info('no response')
+        return None
 
-        customer = models.Customer(response.get('customer'))
-        proxy = response.get('proxy')
 
-        #c = DVSACrawler(random.choice(proxies))
-        c = DVSACrawler(customer, proxy['ip'])
-        #c = DVSACrawler(customer)
-        c.scrape()
+if len(sys.argv) >= 2 and sys.argv[1] == 'mp':
+    logger.info('RUNNING MANY CRAWLERS')
+    #""" MULTI PROCESS """
+    if __name__ == "__main__":
+        procs = []
+        for i in range(5):
+            crawl_info = get_next_crawl()
+            if crawl_info:
+                customer, ip = crawl_info
+                crawler_instance = DVSACrawler(customer, ip)
+                p = mp.Process(target=crawler_instance.scrape)
+                procs.append(p)
+                p.start()
+        
+        for each in procs:
+            each.join()
 else:
-    logger.info('no response')
+    logger.info('RUNNING SINGLE CRAWLER')
+    response = API.fetch_next_crawl()
+    pprint(response)
+    
+    if response:
+        if response.get('error'):
+            logger.info(response['error'])
+        else:
+            #data = json.loads(response)
+    
+            customer = models.Customer(response.get('customer'))
+            proxy = response.get('proxy')
+    
+            #c = DVSACrawler(random.choice(proxies))
+            c = DVSACrawler(customer, proxy['ip'])
+            #c = DVSACrawler(customer)
+            c.scrape()
+    else:
+        logger.info('no response')
+
+

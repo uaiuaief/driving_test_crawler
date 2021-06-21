@@ -8,6 +8,7 @@ import json
 import api_integration as API
 from datetime import datetime
 from selenium import webdriver
+from selenium.common import exceptions
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.firefox.options import Options
@@ -18,6 +19,10 @@ from captcha_solver import solver
 from config import logger
 import models
 
+
+def wait_input():
+    if input('press enter to continue'):
+        pass
 
 def close_driver(func):
     options = Options()
@@ -35,7 +40,7 @@ class DVSACrawler:
     WAIT_QUEUE_PRESENCE_TIME = 10
     MAIN_WAITING_TIME = 20
     WAIT_ON_QUEUE_TIME = 180
-    WAIT_FOR_CAPTCHA_TIME = 3
+    WAIT_FOR_CAPTCHA_TIME = 8
 
     URL = "https://driverpracticaltest.dvsa.gov.uk/login"
     CHANGE_TEST_CENTER = True
@@ -55,7 +60,6 @@ class DVSACrawler:
 
 
     def scrape(self):
-        logger.warn('TEST CENTER IS HARDCODED TO WORKSOP, CHANGE THIS LATER')
         if self.proxy:
             logger.info(f"Proxy: {self.proxy}")
             webdriver.DesiredCapabilities.FIREFOX['proxy'] = {
@@ -64,25 +68,34 @@ class DVSACrawler:
                     "sslProxy": self.proxy,
                     "proxyType": "MANUAL",
                     }
+            #webdriver.DesiredCapabilities.FIREFOX["unexpectedAlertBehaviour"] = "accept"
         else:
             logger.info(f"No Proxy")
 
         
-        #with webdriver.Firefox(self.get_profile(), options=self.get_options()) as driver:
-        if True:
-            driver = webdriver.Firefox(self.get_profile(), options=self.get_options())
+        with webdriver.Firefox(self.get_profile(), options=self.get_options()) as driver:
+        #if True:
+            #driver = webdriver.Firefox(self.get_profile(), options=self.get_options())
             self.driver = driver
 
             self.driver.get(self.URL)
 
+
             if self.is_ip_banned():
                 return
-
             self.login()
+            if self.is_ip_banned():
+                return
             self.solve_captcha()
+            if(self.is_test_cancelled()):
+                return
             self.set_current_test_date()
+            if self.is_ip_banned():
+                return
             self.solve_captcha()
             self.go_to_change_date_page()
+            if self.is_ip_banned():
+                return
             self.solve_captcha()
 
             ##
@@ -93,16 +106,20 @@ class DVSACrawler:
             earliest_date_radial_button.click()
             earliest_date_radial_button.submit()
 
-#            change_date_main_div = WebDriverWait(driver, 20).until(
-#                    EC.presence_of_element_located((By.XPATH, '//div[@id="page"]')))
-#
-#            data_journey = change_date_main_div.get_attribute('data-journey')
-#            print(data_journey)
-
             if self.are_there_available_dates():
                 self.driver.execute_script(self.display_slots_script)
                 self.auto_book()
             else:
+                #logger.info(f"changing test center to Barnsley")
+                #self.change_test_center('Barnsley')
+        
+                #self.solve_captcha()
+
+                #if self.are_there_available_dates():
+                #    self.driver.execute_script(self.display_slots_script)
+                #    self.auto_book()
+
+            #if False:
                 logger.debug("there are no available dates")
                 for each in self.customer.test_centers:
                     test_center_name = each.name
@@ -116,15 +133,6 @@ class DVSACrawler:
                         self.auto_book()
                     else:
                         logger.debug("there are no available dates")
-                    #url = f'http://localhost:8000/api/add-available-dates/{self.customer.main_test_center.name}'
-                    #payload = self.get_dates()
-
-                    #logger.debug(payload)
-
-                    #r = requests.post(url, json=payload)
-                    #logger.debug(r.status_code)
-
-
 
     def get_profile(self):
         user_agent = headers.get_user_agent()
@@ -140,6 +148,22 @@ class DVSACrawler:
         options = Options()
 
         return options
+
+    def is_test_cancelled(self):
+        WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
+                EC.presence_of_element_located((By.XPATH, '//section[@id="confirm-booking-details"]')))
+
+        try:
+            el = self.driver.find_element_by_xpath('//div[@class="contents"]/dl/dd[3]')
+        except exceptions.NoSuchElementException:
+            return False
+
+        if el.get_attribute('textContent') == 'Cancelled':
+            logger.info('test is cancelled, invalidating customer info')
+            API.invalidate_customer_info(self.customer.id)
+            return True
+        else:
+            return False
 
     def is_customer_info_valid(self):
         options = Options()
@@ -160,7 +184,7 @@ class DVSACrawler:
             self.login()
 
             try:
-                WebDriverWait(driver, self.MAIN_WAITING_TIME).until(
+                WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
                         EC.presence_of_element_located((By.XPATH, '//div[@data-journey="pp-change-practical-driving-test-public:change-booking"]')))
 
                 #API.validate_customer_info('1')
@@ -335,6 +359,9 @@ class DVSACrawler:
         change_button = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
                 EC.presence_of_element_located((By.XPATH, '//a[@id="change-test-centre"]')))
         
+        WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
+                EC.invisibility_of_element_located((By.XPATH, '//div[@class="system-busy"]')))
+
         change_button.click()
 
         test_center_input = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
@@ -384,8 +411,16 @@ class DVSACrawler:
 
         self.driver.execute_script(f"arguments[0].innerText = '{solution}'", text_field)
         self.driver.execute_script(f'onCaptchaFinished("{solution}")')
-        self.captcha_solved = True
+       
+        time.sleep(1)
 
+        try:
+            alert = self.driver.switch_to.alert
+            alert.accept()
+        except exceptions.NoAlertPresentException:
+            logger.debug('no alert')
+
+        self.captcha_solved = True
         self.driver.switch_to.default_content()
 
     def login(self):
@@ -394,14 +429,27 @@ class DVSACrawler:
             logger.info('waiting queue presence')
             WebDriverWait(self.driver, self.WAIT_QUEUE_PRESENCE_TIME).until(
                     EC.presence_of_element_located((By.XPATH, '//div[@id="main_c"]')))
-        except:
+            logger.info('waiting on queue')
+            self.solve_captcha()
+        except Exception as e:
+            logger.error(str(e))
             self.solve_captcha()
             logger.info('no queue')
             self.driver.switch_to.default_content()
 
-        logger.info('waiting on queue')
-        licence_number_textfield = WebDriverWait(self.driver, self.WAIT_ON_QUEUE_TIME).until(
-                EC.presence_of_element_located((By.XPATH, '//input[@id="driving-licence-number"]')))
+
+        try:
+            licence_number_textfield = WebDriverWait(
+                self.driver, self.MAIN_WAITING_TIME).until(
+                        EC.presence_of_element_located(
+                            (By.XPATH, '//input[@id="driving-licence-number"]')))
+        except Exception as e:
+            self.solve_captcha()
+
+        licence_number_textfield = WebDriverWait(
+                self.driver, self.WAIT_ON_QUEUE_TIME).until(
+                        EC.presence_of_element_located(
+                            (By.XPATH, '//input[@id="driving-licence-number"]')))
 
         self.solve_captcha()
 
@@ -427,9 +475,13 @@ class DVSACrawler:
         return result.get('code')
 
     def is_ip_banned(self):
-        iframe = self.find_captcha_element()
+        try:
+           # iframe = WebDriverWait(self.driver, self.5).until(
+           #         EC.presence_of_element_located((By.XPATH, '//iframe[@id="main-iframe"]')))
+            iframe = self.driver.find_element_by_xpath('//iframe[@id="main-iframe"]')
 
-        if not iframe:
+        except Exception as e:
+            logger.info('Not banned')
             return False
 
         self.driver.switch_to_frame(iframe)
@@ -437,6 +489,8 @@ class DVSACrawler:
             error = self.driver.find_element_by_xpath('//div[@class="error-title"]')
             if error.get_attribute('textContent') == 'Access denied':
                 logger.error('Ip is banned')
+                API.ban_proxy(self.proxy)
+
                 return True
             logger.debug('Ip is not banned')
             return False
