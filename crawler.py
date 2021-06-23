@@ -37,10 +37,10 @@ def close_driver(func):
 
 
 class DVSACrawler:
-    WAIT_QUEUE_PRESENCE_TIME = 10
+    WAIT_QUEUE_PRESENCE_TIME = 15
     MAIN_WAITING_TIME = 20
     WAIT_ON_QUEUE_TIME = 180
-    WAIT_FOR_CAPTCHA_TIME = 8
+    WAIT_FOR_CAPTCHA_TIME = 10
 
     URL = "https://driverpracticaltest.dvsa.gov.uk/login"
     CHANGE_TEST_CENTER = True
@@ -58,8 +58,6 @@ class DVSACrawler:
         #self.proxy = None
         logger.debug(self.customer)
 
-
-    def scrape(self):
         if self.proxy:
             logger.info(f"Proxy: {self.proxy}")
             webdriver.DesiredCapabilities.FIREFOX['proxy'] = {
@@ -68,11 +66,10 @@ class DVSACrawler:
                     "sslProxy": self.proxy,
                     "proxyType": "MANUAL",
                     }
-            #webdriver.DesiredCapabilities.FIREFOX["unexpectedAlertBehaviour"] = "accept"
         else:
             logger.info(f"No Proxy")
 
-        
+    def scrape(self):
         with webdriver.Firefox(self.get_profile(), options=self.get_options()) as driver:
         #if True:
             #driver = webdriver.Firefox(self.get_profile(), options=self.get_options())
@@ -166,32 +163,47 @@ class DVSACrawler:
             return False
 
     def is_customer_info_valid(self):
-        options = Options()
-        profile = webdriver.FirefoxProfile()
-        profile.set_preference('dom.ipc.plugins.enabled.libflashplayer.so',False)
-        profile.set_preference("media.peerconnection.enabled", False)
-        profile.update_preferences()
-
-        user_agent = headers.get_user_agent()
-        profile.set_preference("general.useragent.override", user_agent)
-        
-        with webdriver.Firefox(profile, options=options) as driver:
+        with webdriver.Firefox(self.get_profile(), options=self.get_options()) as driver:
             self.driver = driver
 
             self.driver.get(self.URL)
 
-            self.solve_captcha()
+            if self.is_ip_banned():
+                raise Exception('ip is banned')
             self.login()
+            if self.is_ip_banned():
+                raise Exception('ip is banned')
+            self.solve_captcha()
 
-            try:
-                WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
-                        EC.presence_of_element_located((By.XPATH, '//div[@data-journey="pp-change-practical-driving-test-public:change-booking"]')))
+            for i in range(3):
+                result = None
+                try:
+                    logger.info('waiting to know if it\'s logged in')
+                    #WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
+                            #EC.presence_of_element_located((By.XPATH, '//div[@data-journey="pp-change-practical-driving-test-public:change-booking"]')))
+                    WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
+                            EC.presence_of_element_located((By.XPATH, '//div[@id="header-button-container"]')))
+                    return True
+                except TimeoutException as e:
+                    logger.info('time out 1')
+                    try:
+                        logger.info('waiting to know if credentials are invalid')
+                        WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
+                                EC.presence_of_element_located((By.XPATH, '//section[@class="error-summary formatting"]')))
+                        return False
+                    except TimeoutException as e:
+                        logger.info('no error message, checking presence of login fields')
+                        try:
+                            WebDriverWait(self.driver, self.WAIT_ON_QUEUE_TIME).until(
+                                    EC.presence_of_element_located((By.XPATH, '//input[@id="driving-licence-number"]')))
+                            return False
+                        except TimeoutException as e:
+                            logger.info('time out 2, trying again')
 
-                #API.validate_customer_info('1')
-                return True
-            except TimeoutException as e:
-                #API.invalidate_customer_info('1')
-                return False
+            logger.info("unable to get an anwser, exiting script")
+
+            return None
+
 
     def are_there_available_dates(self):
         change_date_main_div = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
@@ -427,8 +439,10 @@ class DVSACrawler:
         try:
             self.solve_captcha()
             logger.info('waiting queue presence')
+            #WebDriverWait(self.driver, self.WAIT_QUEUE_PRESENCE_TIME).until(
+                    #EC.presence_of_element_located((By.XPATH, '//div[@id="main_c"]')))
             WebDriverWait(self.driver, self.WAIT_QUEUE_PRESENCE_TIME).until(
-                    EC.presence_of_element_located((By.XPATH, '//div[@id="main_c"]')))
+                    EC.presence_of_element_located((By.XPATH, '//body[@class="queue"]')))
             logger.info('waiting on queue')
             self.solve_captcha()
         except Exception as e:

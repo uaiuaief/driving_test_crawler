@@ -8,6 +8,11 @@ import api_integration as api
 
 def job():
     data = api.fetch_unchecked_users()
+
+    if not data:
+        logger.info('no data')
+        return
+
     users = data.get('customers')
 
     if not users:
@@ -24,25 +29,19 @@ def job():
     customer = models.Customer(user)
     crawler = DVSACrawler(customer, proxy.get('ip'))
     info_valid = crawler.is_customer_info_valid()
-    print(info_valid)
 
     if info_valid == True:
         api.validate_customer_info(customer.id)
-    else:
+    elif info_valid == False:
         api.invalidate_customer_info(customer.id)
 
         
-
-    
-
 job()
-#schedule.every(5).seconds.do(job)
-#
-#while True:
-#    schedule.run_pending()
-#    time.sleep(1)
 
-    
+schedule.every(3).seconds.do(job)
 
 
+while True:
+    time.sleep(2)
+    schedule.run_pending()
 
