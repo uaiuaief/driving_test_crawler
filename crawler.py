@@ -95,6 +95,8 @@ class DVSACrawler:
                 return
             self.solve_captcha()
 
+            if self.is_ip_banned():
+                return
             ##
 
             earliest_date_radial_button = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
@@ -102,6 +104,9 @@ class DVSACrawler:
 
             earliest_date_radial_button.click()
             earliest_date_radial_button.submit()
+
+            if self.is_ip_banned():
+                return
 
             if self.are_there_available_dates():
                 self.driver.execute_script(self.display_slots_script)
@@ -119,6 +124,8 @@ class DVSACrawler:
             #if False:
                 logger.debug("there are no available dates")
                 for each in self.customer.test_centers:
+                    if self.is_ip_banned():
+                        return
                     test_center_name = each.name
                     logger.info(f"changing test center to {test_center_name}")
                     self.change_test_center(test_center_name)
@@ -143,6 +150,7 @@ class DVSACrawler:
 
     def get_options(self):
         options = Options()
+        options.add_argument('--headless')
 
         return options
 

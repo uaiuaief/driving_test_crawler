@@ -41,17 +41,21 @@ if len(sys.argv) >= 2 and sys.argv[1] == 'mp':
     #""" MULTI PROCESS """
     if __name__ == "__main__":
         procs = []
-        for i in range(5):
+        while True:
+            time.sleep(5)
             crawl_info = get_next_crawl()
             if crawl_info:
                 customer, ip = crawl_info
                 crawler_instance = DVSACrawler(customer, ip)
                 p = mp.Process(target=crawler_instance.scrape)
-                procs.append(p)
+                #procs.append(p)
                 p.start()
         
-        for each in procs:
-            each.join()
+            
+            #for each in procs:
+                #each.join()
+
+
 else:
     logger.info('RUNNING SINGLE CRAWLER')
     response = API.fetch_next_crawl()
