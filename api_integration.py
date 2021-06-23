@@ -74,6 +74,31 @@ def send_test_found_email(data):
     else: 
         return None
 
+def fetch_unchecked_users():
+    endpoint = f"unchecked-customers"
+    full_url = f"{URL}/{endpoint}/"
+    logger.debug(f'fetching: {full_url}')
+    r = requests.get(full_url, auth=CREDENTIALS)
+    r.raise_for_status()
+
+    if r.status_code == 200:
+        return r.json()
+    else: 
+        return None
+
+def fetch_valid_proxy():
+    endpoint = f"valid-proxy"
+    full_url = f"{URL}/{endpoint}/"
+    logger.debug(f'fetching: {full_url}')
+    r = requests.get(full_url, auth=CREDENTIALS)
+    r.raise_for_status()
+
+    if r.status_code == 200:
+        return r.json()
+    else: 
+        return None
+
+
 if __name__ == "__main__":
     data = {
             'user_id': 1,
@@ -81,4 +106,8 @@ if __name__ == "__main__":
             'test_date': format(datetime.datetime.now(), "%d-%m-%y"),
             'test_center_id': 2,
             }
+
+
+
+
 
