@@ -19,6 +19,11 @@ def job():
         return
 
     user = users[0]
+    data = api.fetch_valid_proxy()
+
+    if not data:
+        return
+
     proxy = api.fetch_valid_proxy().get('proxy')
 
     if not proxy:
