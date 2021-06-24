@@ -26,7 +26,7 @@ def wait_input():
 
 def close_driver(func):
     options = Options()
-    #options.add_argument('--headless')
+    options.add_argument('--headless')
     #options.add_argument(f'user-agent={get_user_agent()}')
 
     def inner_function(self):
