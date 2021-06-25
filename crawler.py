@@ -102,6 +102,7 @@ class DVSACrawler:
             else:
                 logger.debug("there are no available dates")
                 for each in self.customer.test_centers:
+                    time.sleep(5)
                     test_center_name = each.name
                     logger.info(f"changing test center to {test_center_name}")
                     self.change_test_center(test_center_name)
