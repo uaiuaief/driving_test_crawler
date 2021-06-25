@@ -3,7 +3,7 @@ import requests
 from pprint import pprint
 from config import logger, CRAWLER_USERNAME, CRAWLER_PASSWORD
 
-URL = 'http://localhost:8000/api'
+URL = 'https://www.quickdrivingtest.co.uk/api'
 CREDENTIALS = (CRAWLER_USERNAME, CRAWLER_PASSWORD)
 
 
@@ -66,7 +66,7 @@ def send_test_found_email(data):
                 'test_date': data['test_date'],
                 'test_center_id': data['test_center_id'],
             })
-    pprint(r.json())
+    #pprint(r.json())
     r.raise_for_status()
 
     if r.status_code == 200:
@@ -106,6 +106,13 @@ if __name__ == "__main__":
             'test_date': format(datetime.datetime.now(), "%d-%m-%y"),
             'test_center_id': 2,
             }
+
+    #send_test_found_email(data={
+    #    'user_id': 63,
+    #    'test_time': "15:00",
+    #    'test_date': "25-06-2021",
+    #    'test_center_id': 4,
+    #})
 
 
 
