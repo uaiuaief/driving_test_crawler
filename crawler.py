@@ -24,18 +24,6 @@ def wait_input():
     if input('press enter to continue'):
         pass
 
-def close_driver(func):
-    options = Options()
-    options.add_argument('--headless')
-    #options.add_argument(f'user-agent={get_user_agent()}')
-
-    def inner_function(self):
-        with webdriver.Firefox(options=options) as driver:
-            return func(self, driver)
-
-    return inner_function
-
-
 class DVSACrawler:
     WAIT_QUEUE_PRESENCE_TIME = 15
     MAIN_WAITING_TIME = 20
@@ -134,7 +122,7 @@ class DVSACrawler:
 
                     if self.are_there_available_dates():
                         self.driver.execute_script(self.display_slots_script)
-                        self.auto_book()
+                        self.auto_book(test_center=each)
                     else:
                         logger.debug("there are no available dates")
 
@@ -228,7 +216,7 @@ class DVSACrawler:
     def to_military_time(self, time):
         return datetime.strptime(time, '%I:%M%p').strftime('%H:%M')
 
-    def auto_book(self):
+    def auto_book(self, test_center):
         slot_picker_ul = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
                 EC.presence_of_element_located((By.XPATH, '//ul[@class="SlotPicker-days"]')))
 
@@ -265,6 +253,15 @@ class DVSACrawler:
                         """DON'T CLICK THIS BUTTON OR IT WILL CHANGE THE CUSTOMER DATE"""
                         confirm_changes_button = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
                                 EC.presence_of_element_located((By.XPATH, '//input[@id="confirm-changes"]')))
+
+                        confirm_changes_button.click()
+
+                        API.send_test_found_email(data={
+                            'user_id': self.customer.id,
+                            'test_time': time_,
+                            'test_date': date,
+                            'test_center_id': test_center.id
+                        })
 
                         return
 

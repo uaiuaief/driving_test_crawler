@@ -66,7 +66,7 @@ def send_test_found_email(data):
                 'test_date': data['test_date'],
                 'test_center_id': data['test_center_id'],
             })
-    pprint(r.json())
+    #pprint(r.json())
     r.raise_for_status()
 
     if r.status_code == 200:
@@ -108,6 +108,13 @@ if __name__ == "__main__":
             }
 
     #pprint(fetch_valid_proxy())
+
+    #send_test_found_email(data={
+    #    'user_id': 63,
+    #    'test_time': "15:00",
+    #    'test_date': "25-06-2021",
+    #    'test_center_id': 4,
+    #})
 
 
 
