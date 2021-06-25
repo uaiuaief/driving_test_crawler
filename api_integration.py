@@ -98,6 +98,27 @@ def fetch_valid_proxy():
     else: 
         return None
 
+def send_info_invalid_email(data):
+    endpoint = f"test-found"
+    full_url = f"{URL}/{endpoint}/"
+    logger.debug(f'fetching: {full_url}')
+
+    r = requests.post(
+            full_url, 
+            auth=CREDENTIALS,
+            json={
+                'user_id': data['user_id'],
+                'test_time': data['test_time'],
+                'test_date': data['test_date'],
+                'test_center_id': data['test_center_id'],
+            })
+    #pprint(r.json())
+    r.raise_for_status()
+
+    if r.status_code == 200:
+        return r.json()
+    else: 
+        return None
 
 if __name__ == "__main__":
     data = {
