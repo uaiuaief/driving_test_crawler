@@ -128,6 +128,8 @@ if __name__ == "__main__":
             'test_center_id': 2,
             }
 
+    #pprint(fetch_valid_proxy())
+
     #send_test_found_email(data={
     #    'user_id': 63,
     #    'test_time': "15:00",

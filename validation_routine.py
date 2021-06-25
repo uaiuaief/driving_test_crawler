@@ -43,7 +43,7 @@ def job():
         
 job()
 
-schedule.every(3).seconds.do(job)
+schedule.every(1).minutes.do(job)
 
 
 while True:
