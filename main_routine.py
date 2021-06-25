@@ -1,3 +1,4 @@
+from datetime import datetime, timezone, timedelta
 import sys
 from crawler import DVSACrawler
 import logging
@@ -28,9 +29,31 @@ def get_next_crawl():
         logger.info('no response')
         return None
 
+def is_gov_website_working():
+    timezone_offset = 1.0
+    tzinfo = timezone(timedelta(hours=timezone_offset))
+    current_time = datetime.now(tzinfo)
+
+    start = datetime.strptime("06:00+0100", "%H:%M%z")
+    end = datetime.strptime("22:00+0100", "%H:%M%z")
+
+    if not start.time() < current_time.time() < end.time():
+        return False
+    elif format(current_time, "%A") == "Sunday":
+        return False
+    else:
+        return True
+
+    #print(f"{current_time.time()} > {start.time()} {current_time.time() > start.time()}")
+    #print(f"{current_time.time()} < {end.time()} {current_time.time() < end.time()}")
+
 
 if __name__ == "__main__":
     while True:
+        if not is_gov_website_working():
+            time.sleep(600)
+            continue
+
         time.sleep(5)
         crawl_info = get_next_crawl()
         if crawl_info:
