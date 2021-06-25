@@ -3,7 +3,7 @@ import requests
 from pprint import pprint
 from config import logger, CRAWLER_USERNAME, CRAWLER_PASSWORD
 
-URL = 'http://localhost:8000/api'
+URL = 'https://www.quickdrivingtest.co.uk/api'
 CREDENTIALS = (CRAWLER_USERNAME, CRAWLER_PASSWORD)
 
 
@@ -106,6 +106,8 @@ if __name__ == "__main__":
             'test_date': format(datetime.datetime.now(), "%d-%m-%y"),
             'test_center_id': 2,
             }
+
+    #pprint(fetch_valid_proxy())
 
 
 

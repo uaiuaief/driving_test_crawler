@@ -263,8 +263,8 @@ class DVSACrawler:
                         i_am_the_candidate_button.click()
 
                         """DON'T CLICK THIS BUTTON OR IT WILL CHANGE THE CUSTOMER DATE"""
-                        #confirm_changes_button = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
-                        #        EC.presence_of_element_located((By.XPATH, '//input[@id="confirm-changes"]')))
+                        confirm_changes_button = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
+                                EC.presence_of_element_located((By.XPATH, '//input[@id="confirm-changes"]')))
 
                         return
 
