@@ -66,8 +66,10 @@ class Customer(BaseClass):
 
     @recent_test_failure.setter
     def recent_test_failure(self, value):
-        if value == "null":
+        if value == None:
             self._recent_test_failure = None
+        else:
+            self._recent_test_failure = datetime.strptime(value, "%Y-%m-%d").date()
 
     @property
     def earliest_test_date(self):
