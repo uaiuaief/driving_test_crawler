@@ -309,11 +309,17 @@ class DVSACrawler:
         date_object = datetime.strptime(date_str, "%Y-%m-%d")
 
         """
+        Is the day found 16 days after most recent failure?
+        """
+        if self.customer.recent_test_failure \
+                and date_object < self.customer.recent_test_failure + timedelta(days=16):
+                    return False
+
+        """
         Is the day found within refundable range?
         """
         if date_object < datetime.today() + timedelta(days=5):
             return False
-
 
         """
         Is the day found BEFORE the customer earliest viable date?
