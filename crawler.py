@@ -6,7 +6,7 @@ import pprint
 import headers
 import json
 import api_integration as API
-from datetime import datetime
+from datetime import datetime, timedelta
 from selenium import webdriver
 from selenium.common import exceptions
 from selenium.webdriver.common.by import By
@@ -264,7 +264,7 @@ class DVSACrawler:
         time_object = datetime.strptime(time_str, "%H:%M").time()
         
         """
-        Is the time that whas found before the initial time that the
+        Is the time that whas found BEFORE the initial time that the
         customer can go to the test?
         """
         if self.customer.earliest_time:
@@ -277,7 +277,7 @@ class DVSACrawler:
 
 
         """
-        Is the time that was found after the latest time that the
+        Is the time that was found AFTER the latest time that the
         customer can go to the test?
         """
         if self.customer.latest_time:
@@ -307,6 +307,17 @@ class DVSACrawler:
                 )
         
         date_object = datetime.strptime(date_str, "%Y-%m-%d")
+
+        """
+        Is the day found within refundable range?
+        """
+        if date_object < datetime.today() + timedelta(days=5):
+            return False
+
+
+        """
+        Is the day found BEFORE the customer earliest viable date?
+        """
         if date_object < earliest:
             return False
 
@@ -319,6 +330,9 @@ class DVSACrawler:
                 self.customer.latest_test_date.day,
                 )
 
+        """
+        Is the day found AFTER the customer earliest viable date?
+        """
         if date_object > latest:
             return False
         else:
