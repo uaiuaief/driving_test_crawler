@@ -34,8 +34,8 @@ def is_gov_website_working():
     tzinfo = timezone(timedelta(hours=timezone_offset))
     current_time = datetime.now(tzinfo)
 
-    start = datetime.strptime("06:00+0100", "%H:%M%z")
-    end = datetime.strptime("22:00+0100", "%H:%M%z")
+    start = datetime.strptime("06:30+0100", "%H:%M%z")
+    end = datetime.strptime("23:30+0100", "%H:%M%z")
 
     if not start.time() < current_time.time() < end.time():
         return False
