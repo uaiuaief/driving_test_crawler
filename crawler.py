@@ -209,6 +209,7 @@ class DVSACrawler:
         return datetime.strptime(time, '%I:%M%p').strftime('%H:%M')
 
     def auto_book(self, test_center):
+        logger.info('auto_booking')
         slot_picker_ul = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
                 EC.presence_of_element_located((By.XPATH, '//ul[@class="SlotPicker-days"]')))
 
