@@ -121,10 +121,10 @@ class Customer(BaseClass):
 
     @current_test_date.setter
     def current_test_date(self, value):
-        if value == "null":
-            self._current_test_date = None
-        else:
+        if value:
             self._current_test_date = datetime.strptime(value, '%H:%M:%S').time()
+        else:
+            self._current_test_date = None
 
 
 class TestCenter(BaseClass):
