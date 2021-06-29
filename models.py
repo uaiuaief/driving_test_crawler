@@ -29,7 +29,6 @@ class Customer(BaseClass):
         profile = data['profile']
         self.driving_licence_number = profile['driving_licence_number']
         self.test_ref = profile['test_ref']
-        #self.main_test_center = TestCenter(profile['main_test_center'])
         self.test_centers = profile['test_centers']
         self.recent_test_failure = profile.get('recent_test_failure')
         self.earliest_test_date = profile['earliest_test_date']
@@ -38,6 +37,8 @@ class Customer(BaseClass):
         self.latest_time = profile['latest_time']
         self.info_validation = profile['info_validation']
         self.automatic_booking = profile['automatic_booking']
+        self.test_booked = profile['test_booked']
+        self.current_test_date = profile['current_test_date']
 
     def __str__(self):
         return f"{self.driving_licence_number} ::: {self.test_ref}"
@@ -54,6 +55,8 @@ class Customer(BaseClass):
 
     @test_centers.setter
     def test_centers(self, value):
+        if not value:
+            raise ValueError("test_centers can't be empty")
         arr = []
         for each in value:
             arr.append(TestCenter(each))
@@ -111,6 +114,17 @@ class Customer(BaseClass):
             self._latest_time = None
         else:
             self._latest_time = datetime.strptime(value, '%H:%M:%S').time()
+
+    @property
+    def current_test_date(self):
+        return self._current_test_date
+
+    @current_test_date.setter
+    def current_test_date(self, value):
+        if value == "null":
+            self._current_test_date = None
+        else:
+            self._current_test_date = datetime.strptime(value, '%H:%M:%S').time()
 
 
 class TestCenter(BaseClass):

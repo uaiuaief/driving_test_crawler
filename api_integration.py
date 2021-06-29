@@ -27,6 +27,20 @@ def _set_customer_info(customer_pk, value):
 
     r.raise_for_status()
 
+def set_customer_current_test_date(customer_pk, date_time):
+    endpoint = f"set-current-test-date"
+    full_url = f"{URL}/{endpoint}/"
+    logger.debug(f'fetching: {full_url}')
+    r = requests.post(
+            full_url, 
+            auth=CREDENTIALS,
+            json={
+        'user_id': customer_pk,
+        'datetime': date_time
+        })
+
+    r.raise_for_status()
+
 def ban_proxy(ip):
     endpoint = f"ban-proxy"
     full_url = f"{URL}/{endpoint}/"
