@@ -74,6 +74,8 @@ class DVSACrawler:
             self.solve_captcha()
             if(self.is_test_cancelled()):
                 return
+            if(self.is_test_non_refundable()):
+                return
             self.set_current_test_date()
             if self.is_ip_banned():
                 return
@@ -150,6 +152,22 @@ class DVSACrawler:
         else:
             return False
 
+    def is_test_non_refundable(self):
+        WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
+                EC.presence_of_element_located((By.XPATH, '//section[@id="confirm-booking-details"]')))
+
+        try:
+            el = self.driver.find_element_by_xpath('//div[@class="contents"]/dl/dd[2]')
+        except exceptions.NoSuchElementException:
+            return False
+
+        if el.get_attribute('textContent') == 'This test slot is non-refundable':
+            logger.info("test date is non-refundable, can't change date")
+            API.set_test_booked(self.customer.id)
+            return True
+        else:
+            return False
+
     def is_customer_info_valid(self):
         with webdriver.Firefox(self.get_profile(), options=self.get_options()) as driver:
             self.driver = driver
@@ -209,7 +227,6 @@ class DVSACrawler:
         return datetime.strptime(time, '%I:%M%p').strftime('%H:%M')
 
     def auto_book(self, test_center):
-        logger.info('auto_booking')
         slot_picker_ul = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
                 EC.presence_of_element_located((By.XPATH, '//ul[@class="SlotPicker-days"]')))
 
@@ -220,6 +237,8 @@ class DVSACrawler:
             labels = available_day.find_elements_by_tag_name('label')
             date = available_day.get_attribute('id')
             date = date[5:]
+            if date:
+                logger.info(f"{date} = {self.is_day_within_range(date)}")
             if date and self.is_day_within_range(date):
                 labels = available_day.find_elements_by_tag_name('label')
 
@@ -228,7 +247,8 @@ class DVSACrawler:
                     time_ = time_element.get_attribute('innerHTML')
                     time_ = self.to_military_time(time_)
 
-                    print(time_, ' ', self.is_time_within_range(time_, date))
+                    #print(time_, ' ', self.is_time_within_range(time_, date))
+                    logger.info(f"{date}, {time_}, {self._is_time_within_range(time_, date)}")
                     if self.is_time_within_range(time_, date):
                         print(time_)
                         time_element.click()
@@ -392,6 +412,10 @@ class DVSACrawler:
         
         WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
                 EC.invisibility_of_element_located((By.XPATH, '//div[@class="system-busy"]')))
+        #WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
+                #EC.invisibility_of_element_located((By.XPATH, '//div[@id="progress-bar"]')))
+        #WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
+                #EC.invisibility_of_element_located((By.XPATH, '//li[@class="end-point"]')))
 
         change_button.click()
 

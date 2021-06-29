@@ -46,6 +46,20 @@ def set_customer_current_test_date(customer_pk, date_time):
 
     r.raise_for_status()
 
+def set_test_booked(customer_pk):
+    endpoint = f"set-test-booked"
+    full_url = f"{URL}/{endpoint}/"
+    logger.debug(f'fetching: {full_url}')
+
+    r = requests.post(
+            full_url, 
+            auth=CREDENTIALS,
+            json={
+        'user_id': customer_pk,
+        })
+
+    r.raise_for_status()
+
 def ban_proxy(ip):
     endpoint = f"ban-proxy"
     full_url = f"{URL}/{endpoint}/"
@@ -147,6 +161,7 @@ if __name__ == "__main__":
             'test_center_id': 2,
             }
 
+
     #dt = datetime.datetime.now()
-    #set_customer_current_test_date(63, dt)
+    #set_test_booked(66)
 

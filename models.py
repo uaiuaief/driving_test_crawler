@@ -122,7 +122,7 @@ class Customer(BaseClass):
     @current_test_date.setter
     def current_test_date(self, value):
         if value:
-            self._current_test_date = datetime.strptime(value, '%H:%M:%S').time()
+            self._current_test_date = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S%z')
         else:
             self._current_test_date = None
 

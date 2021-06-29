@@ -54,11 +54,12 @@ if __name__ == "__main__":
             time.sleep(600)
             continue
 
-        time.sleep(5)
+        time.sleep(2)
         crawl_info = get_next_crawl()
         if crawl_info:
             customer, ip = crawl_info
             crawler_instance = DVSACrawler(customer, ip)
             p = mp.Process(target=crawler_instance.scrape)
             p.start()
+
         
