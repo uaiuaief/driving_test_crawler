@@ -4,6 +4,7 @@ from pprint import pprint
 from config import logger, CRAWLER_USERNAME, CRAWLER_PASSWORD
 
 URL = 'https://www.quickdrivingtest.co.uk/api'
+#URL = 'http://localhost:8000/api'
 CREDENTIALS = (CRAWLER_USERNAME, CRAWLER_PASSWORD)
 
 
@@ -31,12 +32,16 @@ def set_customer_current_test_date(customer_pk, date_time):
     endpoint = f"set-current-test-date"
     full_url = f"{URL}/{endpoint}/"
     logger.debug(f'fetching: {full_url}')
+
+    #Format = 01-01-2021 15:00
+    formatted_date = format(date_time, "%d-%m-%Y %H:%M")
+
     r = requests.post(
             full_url, 
             auth=CREDENTIALS,
             json={
         'user_id': customer_pk,
-        'datetime': date_time
+        'datetime': formatted_date
         })
 
     r.raise_for_status()
@@ -142,16 +147,6 @@ if __name__ == "__main__":
             'test_center_id': 2,
             }
 
-    #pprint(fetch_valid_proxy())
-
-    #send_test_found_email(data={
-    #    'user_id': 63,
-    #    'test_time': "15:00",
-    #    'test_date': "25-06-2021",
-    #    'test_center_id': 4,
-    #})
-
-
-
-
+    #dt = datetime.datetime.now()
+    #set_customer_current_test_date(63, dt)
 
