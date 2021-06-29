@@ -540,9 +540,7 @@ class DVSACrawler:
         el_text = el.get_attribute('textContent')
         self.current_test_date = datetime.strptime(el_text, "%A %d %B %Y %I:%M%p")
 
-        #Format = 01-01-2021 15:00
-        fmt_date = format(self.current_test_date, "%d-%m-%Y %H:%M")
-        API.set_customer_current_test_date(fmt_date)
+        API.set_customer_current_test_date(self.customer.id, self.current_test_date)
         
 
 
