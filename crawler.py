@@ -132,7 +132,7 @@ class DVSACrawler:
 
     def get_options(self):
         options = Options()
-        options.add_argument('--headless')
+        #options.add_argument('--headless')
 
         return options
 
@@ -365,15 +365,18 @@ class DVSACrawler:
         else:
             return True
 
-    def is_before_current_test_date(self, date_str, time_str):
-        date_object = datetime.strptime(date_str, "%Y-%m-%d")
-        time_object = datetime.strptime(time_str, "%H:%M").time()
+    def is_before_current_test_date(self, date_found: str, time_found: str):
+        date_object = datetime.strptime(date_found, "%Y-%m-%d").date()
+        time_object = datetime.strptime(time_found, "%H:%M").time()
 
-        if date_object.date() <= self.current_test_date.date():
-            if time_object < self.current_test_date.time():
-                return True
-            else:
-                return False
+        date_is_equal = date_object == self.customer.current_test_date.date()
+        date_is_before = date_object < self.customer.current_test_date.date()
+        time_is_before = time_object < self.customer.current_test_date.time()
+
+        if date_is_before:
+            return True
+        elif date_is_equal and time_is_before:
+            return True
         else:
             return False
 
@@ -431,7 +434,6 @@ class DVSACrawler:
 
         test_center_list.find_element_by_link_text(test_center_name).click()
 
-    
     def find_captcha_element(self):
         if self.captcha_solved:
             return None
@@ -523,7 +525,6 @@ class DVSACrawler:
 
         change_date_button.click()
 
-    
     def get_captcha_solution(self, data_sitekey):
         logger.info('Solving Captcha')
         result = solver.recaptcha(sitekey=data_sitekey, url=self.URL)
