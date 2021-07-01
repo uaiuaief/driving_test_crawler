@@ -131,7 +131,7 @@ class DVSACrawler:
 
     def get_options(self):
         options = Options()
-        #options.add_argument('--headless')
+        options.add_argument('--headless')
 
         return options
 
