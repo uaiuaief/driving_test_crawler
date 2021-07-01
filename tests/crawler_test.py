@@ -118,6 +118,96 @@ class TestCrawler(unittest.TestCase):
             self.crawler.is_before_current_test_date("2021/11/04", "08:10")
             self.crawler.is_before_current_test_date("2021-11-04", "08:10:00")
 
-    def test_is_day_within_range(self):
-        pass
+    @unittest.skip("testing other")
+    def test_is_day_within_customer_date_range(self):
+        date_found = "2021-06-28"
+        result = self.crawler.is_day_within_customer_date_range(date_found)
+        self.assertFalse(result)
+        
+        date_found = "2021-06-29"
+        result = self.crawler.is_day_within_customer_date_range(date_found)
+        self.assertTrue(result)
 
+        date_found = "2021-07-10"
+        result = self.crawler.is_day_within_customer_date_range(date_found)
+        self.assertTrue(result)
+        
+        date_found = "2021-07-31"
+        result = self.crawler.is_day_within_customer_date_range(date_found)
+        self.assertTrue(result)
+
+        date_found = "2021-08-01"
+        result = self.crawler.is_day_within_customer_date_range(date_found)
+        self.assertFalse(result)
+
+    @unittest.skip("testing other")
+    def test_is_day_within_refundable_range(self):
+        date_today = datetime.datetime.today().date()
+
+        date_found = format(date_today, "%Y-%m-%d")
+        result = self.crawler.is_day_within_refundable_range(date_found)
+        self.assertFalse(result)
+
+        date_found = format(date_today + datetime.timedelta(days=1), "%Y-%m-%d")
+        result = self.crawler.is_day_within_refundable_range(date_found)
+        self.assertFalse(result)
+
+        date_found = format(date_today + datetime.timedelta(days=2), "%Y-%m-%d")
+        result = self.crawler.is_day_within_refundable_range(date_found)
+        self.assertFalse(result)
+
+        date_found = format(date_today + datetime.timedelta(days=3), "%Y-%m-%d")
+        result = self.crawler.is_day_within_refundable_range(date_found)
+        self.assertFalse(result)
+
+        date_found = format(date_today + datetime.timedelta(days=4), "%Y-%m-%d")
+        result = self.crawler.is_day_within_refundable_range(date_found)
+        self.assertFalse(result)
+
+        date_found = format(date_today + datetime.timedelta(days=5), "%Y-%m-%d")
+        result = self.crawler.is_day_within_refundable_range(date_found)
+        self.assertTrue(result)
+
+        date_found = format(date_today + datetime.timedelta(days=6), "%Y-%m-%d")
+        result = self.crawler.is_day_within_refundable_range(date_found)
+        self.assertTrue(result)
+
+    def test_is_day_after_recent_failure_date_limit(self):
+        date_found = "2021-06-12"
+        recent_test_failure = self.customer.recent_test_failure
+        result = self.crawler.is_day_after_recent_failure_date_limit(date_found)
+        self.assertFalse(result)
+
+        date_found = "2021-07-12"
+        recent_test_failure = self.customer.recent_test_failure
+        result = self.crawler.is_day_after_recent_failure_date_limit(date_found)
+        self.assertFalse(result)
+
+        date_found = "2021-07-13"
+        recent_test_failure = self.customer.recent_test_failure
+        result = self.crawler.is_day_after_recent_failure_date_limit(date_found)
+        self.assertFalse(result)
+
+        date_found = "2021-07-14"
+        recent_test_failure = self.customer.recent_test_failure
+        result = self.crawler.is_day_after_recent_failure_date_limit(date_found)
+        self.assertTrue(result)
+
+        date_found = "2021-07-15"
+        recent_test_failure = self.customer.recent_test_failure
+        result = self.crawler.is_day_after_recent_failure_date_limit(date_found)
+        self.assertTrue(result)
+
+        date_found = "2021-07-16"
+        recent_test_failure = self.customer.recent_test_failure
+        result = self.crawler.is_day_after_recent_failure_date_limit(date_found)
+        self.assertTrue(result)
+
+        date_found = "2021-08-30"
+        recent_test_failure = self.customer.recent_test_failure
+        result = self.crawler.is_day_after_recent_failure_date_limit(date_found)
+        self.assertTrue(result)
+
+        self.crawler.customer.recent_test_failure = None
+        result = self.crawler.is_day_after_recent_failure_date_limit("2021-06-29")
+        self.assertTrue(result)

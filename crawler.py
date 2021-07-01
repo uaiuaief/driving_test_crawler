@@ -320,14 +320,64 @@ class DVSACrawler:
         else:
             return False
 
-    def is_day_within_range(self, date_str):
+    def is_day_within_customer_date_range(self, date_found: str):
+        earliest = datetime(
+                self.customer.earliest_test_date.year,
+                self.customer.earliest_test_date.month,
+                self.customer.earliest_test_date.day,
+                ).date()
+        
+        date_object = datetime.strptime(date_found, "%Y-%m-%d").date()
+
+        """
+        Is the day found BEFORE the customer earliest viable date?
+        """
+        if date_object < earliest:
+            return False
+
+        if not self.customer.latest_test_date:
+            return True
+
+        latest = datetime(
+                self.customer.latest_test_date.year,
+                self.customer.latest_test_date.month,
+                self.customer.latest_test_date.day,
+                ).date()
+
+        """
+        Is the day found AFTER the customer earliest viable date?
+        """
+        if date_object > latest:
+            return False
+        else:
+            return True
+
+    def is_day_within_refundable_range(self, date_found: str):
+        date_object = datetime.strptime(date_found, "%Y-%m-%d").date()
+        last_refundable_date = (datetime.today() + timedelta(days=5)).date()
+
+        if date_object < last_refundable_date:
+            return False
+        else:
+            return True
+
+    def is_day_after_recent_failure_date_limit(self, date_found: str):
+        date_object = datetime.strptime(date_found, "%Y-%m-%d").date()
+
+        if self.customer.recent_test_failure \
+                and date_object < self.customer.recent_test_failure + timedelta(days=16):
+                    return False
+        else:
+            return True
+
+    def is_day_within_range(self, date_found: str):
         earliest = datetime(
                 self.customer.earliest_test_date.year,
                 self.customer.earliest_test_date.month,
                 self.customer.earliest_test_date.day,
                 )
         
-        date_object = datetime.strptime(date_str, "%Y-%m-%d")
+        date_object = datetime.strptime(date_found, "%Y-%m-%d").date()
 
         """
         Is the day found 16 days after most recent failure?
