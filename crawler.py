@@ -34,7 +34,6 @@ class DVSACrawler:
     CHANGE_TEST_CENTER = True
 
     driver = None
-    current_test_date = None
     captcha_solved = False
 
     display_slots_script = "document.getElementsByClassName('SlotPicker-timeSlots')[0].style.display = 'block'; els = document.getElementsByClassName('SlotPicker-day'); arr = Array.from(els); arr.map((each) => each.style.display = 'block');"
@@ -237,8 +236,6 @@ class DVSACrawler:
             date = available_day.get_attribute('id')
             date = date[5:]
             if date:
-                logger.info(f"{date} = {self.is_day_within_range(date)}")
-            if date and self.is_day_within_range(date):
                 labels = available_day.find_elements_by_tag_name('label')
 
                 for label in labels:
@@ -246,10 +243,13 @@ class DVSACrawler:
                     time_ = time_element.get_attribute('innerHTML')
                     time_ = self.to_military_time(time_)
 
-                    #print(time_, ' ', self.is_time_within_range(time_, date))
-                    logger.info(f"{date}, {time_}, {self._is_time_within_range(time_, date)}")
-                    if self.is_time_within_range(time_, date):
-                        print(time_)
+                    logger.info(f"Found date: {date}, {time_}")
+
+                    if self.can_test_be_booked(date, time_):
+                        logger.info(f"Booking test:\nTest Center -> {test_center.name}")
+                        logger.info(f"\nTest Day -> {date}")
+                        logger.info(f"\nTest Time -> {time_}")
+
                         time_element.click()
                         time_element.submit()
                         continue_button = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
@@ -267,11 +267,7 @@ class DVSACrawler:
                                 EC.presence_of_element_located((By.XPATH, '//input[@id="confirm-changes"]')))
 
 
-                        logger.info(f"Booking test:\nTest Center -> {test_center.name}")
-                        logger.info(f"\nTest Day -> {date}")
-                        logger.info(f"\nTest Time -> {time_}")
-                        return
-                        #confirm_changes_button.click()
+                        confirm_changes_button.click()
 
                         API.send_test_found_email(data={
                             'user_id': self.customer.id,
@@ -280,10 +276,7 @@ class DVSACrawler:
                             'test_center_id': test_center.id
                         })
 
-
                         return
-
-                print(date, ' ~ ',self.is_day_within_range(date))
 
     def is_time_within_range(self, time_found):
         time_object = datetime.strptime(time_found, "%H:%M").time()
@@ -317,6 +310,7 @@ class DVSACrawler:
         if is_after_earliest_time and is_before_latest_time:
             return True
         else:
+            logger.debug("Time not within range")
             return False
 
     def is_day_within_customer_date_range(self, date_found: str):
@@ -332,6 +326,7 @@ class DVSACrawler:
         Is the day found BEFORE the customer earliest viable date?
         """
         if date_object < earliest:
+            logger.debug("Date before customer date range")
             return False
 
         if not self.customer.latest_test_date:
@@ -347,6 +342,7 @@ class DVSACrawler:
         Is the day found AFTER the customer earliest viable date?
         """
         if date_object > latest:
+            logger.debug("Date after customer date range")
             return False
         else:
             return True
@@ -356,6 +352,7 @@ class DVSACrawler:
         last_refundable_date = (datetime.today() + timedelta(days=5)).date()
 
         if date_object < last_refundable_date:
+            logger.debug("Date not within refundable range")
             return False
         else:
             return True
@@ -365,6 +362,7 @@ class DVSACrawler:
 
         if self.customer.recent_test_failure \
                 and date_object < self.customer.recent_test_failure + timedelta(days=16):
+                    logger.debug("Date not after recent failure limit")
                     return False
         else:
             return True
@@ -380,51 +378,6 @@ class DVSACrawler:
         else:
             return False
 
-    def is_day_within_range(self, date_found: str):
-        earliest = datetime(
-                self.customer.earliest_test_date.year,
-                self.customer.earliest_test_date.month,
-                self.customer.earliest_test_date.day,
-                )
-        
-        date_object = datetime.strptime(date_found, "%Y-%m-%d").date()
-
-        """
-        Is the day found 16 days after most recent failure?
-        """
-        if self.customer.recent_test_failure \
-                and date_object < self.customer.recent_test_failure + timedelta(days=16):
-                    return False
-
-        """
-        Is the day found within refundable range?
-        """
-        if date_object < datetime.today() + timedelta(days=5):
-            return False
-
-        """
-        Is the day found BEFORE the customer earliest viable date?
-        """
-        if date_object < earliest:
-            return False
-
-        if not self.customer.latest_test_date:
-            return True
-
-        latest = datetime(
-                self.customer.latest_test_date.year,
-                self.customer.latest_test_date.month,
-                self.customer.latest_test_date.day,
-                )
-
-        """
-        Is the day found AFTER the customer earliest viable date?
-        """
-        if date_object > latest:
-            return False
-        else:
-            return True
-
     def is_before_current_test_date(self, date_found: str, time_found: str):
         date_object = datetime.strptime(date_found, "%Y-%m-%d").date()
         time_object = datetime.strptime(time_found, "%H:%M").time()
@@ -438,6 +391,7 @@ class DVSACrawler:
         elif date_is_equal and time_is_before:
             return True
         else:
+            logger.debug("Date not before current test date")
             return False
 
     def get_dates(self):
@@ -623,9 +577,15 @@ class DVSACrawler:
                 EC.presence_of_element_located((By.XPATH, '//section[@id="confirm-booking-details"]/section[1]/div/dl/dd[1]')))
 
         el_text = el.get_attribute('textContent')
-        self.current_test_date = datetime.strptime(el_text, "%A %d %B %Y %I:%M%p")
+        el_text = f"{el_text}+0100"
 
-        API.set_customer_current_test_date(self.customer.id, self.current_test_date)
+        #date_obj = datetime.strptime(el_text, "%A %d %B %Y %I:%M%p")
+        date_obj = datetime.strptime(el_text, "%A %d %B %Y %I:%M%p%z")
+        date_str = format(date_obj, "%Y-%m-%dT%H:%M:%S%z")
+
+        self.customer.current_test_date = date_str
+
+        API.set_customer_current_test_date(self.customer.id, self.customer.current_test_date)
         
 
 
