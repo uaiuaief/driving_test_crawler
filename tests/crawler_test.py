@@ -42,7 +42,7 @@ class TestCrawler(unittest.TestCase):
         self.customer = Customer(self.data)
         self.crawler = DVSACrawler(self.customer)
 
-    @unittest.skip("testing other")
+    #@unittest.skip("testing other")
     def test_to_military_time(self):
         minutes = [str(i).zfill(2) for i in range(60)]
         hours_twelve = [str(i+1).zfill(2) for i in range(12)]
@@ -71,7 +71,7 @@ class TestCrawler(unittest.TestCase):
             result = self.crawler.to_military_time(current)
             self.assertEqual(result, expected)
 
-    @unittest.skip("testing other")
+    #@unittest.skip("testing other")
     def test_is_before_current_test_date(self):
         #date before time before = True
         result = self.crawler.is_before_current_test_date("2021-11-02", "08:09")
@@ -118,7 +118,7 @@ class TestCrawler(unittest.TestCase):
             self.crawler.is_before_current_test_date("2021/11/04", "08:10")
             self.crawler.is_before_current_test_date("2021-11-04", "08:10:00")
 
-    @unittest.skip("testing other")
+    #@unittest.skip("testing other")
     def test_is_day_within_customer_date_range(self):
         date_found = "2021-06-28"
         result = self.crawler.is_day_within_customer_date_range(date_found)
@@ -140,7 +140,7 @@ class TestCrawler(unittest.TestCase):
         result = self.crawler.is_day_within_customer_date_range(date_found)
         self.assertFalse(result)
 
-    @unittest.skip("testing other")
+    #@unittest.skip("testing other")
     def test_is_day_within_refundable_range(self):
         date_today = datetime.datetime.today().date()
 
@@ -172,6 +172,7 @@ class TestCrawler(unittest.TestCase):
         result = self.crawler.is_day_within_refundable_range(date_found)
         self.assertTrue(result)
 
+    #@unittest.skip("testing other")
     def test_is_day_after_recent_failure_date_limit(self):
         date_found = "2021-06-12"
         recent_test_failure = self.customer.recent_test_failure
@@ -211,3 +212,38 @@ class TestCrawler(unittest.TestCase):
         self.crawler.customer.recent_test_failure = None
         result = self.crawler.is_day_after_recent_failure_date_limit("2021-06-29")
         self.assertTrue(result)
+
+    #@unittest.skip("testing other")
+    def test_is_time_within_range(self):
+        time_found = "09:59"
+        result = self.crawler.is_time_within_range(time_found)
+        self.assertFalse(result)
+
+        time_found = "10:00"
+        result = self.crawler.is_time_within_range(time_found)
+        self.assertTrue(result)
+
+        time_found = "14:59"
+        result = self.crawler.is_time_within_range(time_found)
+        self.assertTrue(result)
+
+        time_found = "15:00"
+        result = self.crawler.is_time_within_range(time_found)
+        self.assertTrue(result)
+
+        time_found = "15:01"
+        result = self.crawler.is_time_within_range(time_found)
+        self.assertFalse(result)
+
+    def test_can_test_be_booked(self):
+        date_found = "2021-06-28"
+        time_found = "10:00"
+
+        result = self.crawler.can_test_be_booked(date_found, time_found)
+        self.assertFalse(result)
+
+        date_found = "2021-07-20"
+        time_found = "11:00"
+        result = self.crawler.can_test_be_booked(date_found, time_found)
+        self.assertTrue(result)
+

@@ -210,7 +210,6 @@ class DVSACrawler:
 
             return None
 
-
     def are_there_available_dates(self):
         change_date_main_div = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
                 EC.presence_of_element_located((By.XPATH, '//div[@id="page"]')))
@@ -267,7 +266,12 @@ class DVSACrawler:
                         confirm_changes_button = WebDriverWait(self.driver, self.MAIN_WAITING_TIME).until(
                                 EC.presence_of_element_located((By.XPATH, '//input[@id="confirm-changes"]')))
 
-                        confirm_changes_button.click()
+
+                        logger.info(f"Booking test:\nTest Center -> {test_center.name}")
+                        logger.info(f"\nTest Day -> {date}")
+                        logger.info(f"\nTest Time -> {time_}")
+                        return
+                        #confirm_changes_button.click()
 
                         API.send_test_found_email(data={
                             'user_id': self.customer.id,
@@ -281,15 +285,15 @@ class DVSACrawler:
 
                 print(date, ' ~ ',self.is_day_within_range(date))
 
-    def is_time_within_range(self, time_str, date_str):
-        time_object = datetime.strptime(time_str, "%H:%M").time()
+    def is_time_within_range(self, time_found):
+        time_object = datetime.strptime(time_found, "%H:%M").time()
         
         """
         Is the time that whas found BEFORE the initial time that the
         customer can go to the test?
         """
         if self.customer.earliest_time:
-            if time_object > self.customer.earliest_time:
+            if time_object >= self.customer.earliest_time:
                 is_after_earliest_time = True
             else:
                 is_after_earliest_time = False
@@ -302,7 +306,7 @@ class DVSACrawler:
         customer can go to the test?
         """
         if self.customer.latest_time:
-            if time_object < self.customer.latest_time:
+            if time_object <= self.customer.latest_time:
                 is_before_latest_time = True
             else:
                 is_before_latest_time = False
@@ -310,13 +314,8 @@ class DVSACrawler:
             is_before_latest_time = True
 
 
-        """
-        Is the new date before the current booked date?
-        """
-        if is_after_earliest_time \
-                and is_before_latest_time \
-                and self.is_before_current_test_date(date_str, time_str):
-                    return True
+        if is_after_earliest_time and is_before_latest_time:
+            return True
         else:
             return False
 
@@ -369,6 +368,17 @@ class DVSACrawler:
                     return False
         else:
             return True
+
+    def can_test_be_booked(self, date_found: str, time_found: str):
+        if self.is_day_within_customer_date_range(date_found) \
+                and self.is_day_within_refundable_range(date_found) \
+                and self.is_day_after_recent_failure_date_limit(date_found) \
+                and self.is_before_current_test_date(date_found, time_found) \
+                and self.is_time_within_range(time_found):
+
+                    return True
+        else:
+            return False
 
     def is_day_within_range(self, date_found: str):
         earliest = datetime(
