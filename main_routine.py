@@ -39,8 +39,6 @@ def is_gov_website_working():
 
     if not start.time() < current_time.time() < end.time():
         return False
-    elif format(current_time, "%A") == "Sunday":
-        return False
     else:
         return True
 
