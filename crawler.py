@@ -49,7 +49,7 @@ class DVSACrawler:
             logger.info(f"Proxy: {self.proxy}")
             webdriver.DesiredCapabilities.FIREFOX['proxy'] = {
                     "httpProxy": self.proxy,
-                    "ftpProxy": self.proxy,
+                    #"ftpProxy": self.proxy,
                     "sslProxy": self.proxy,
                     "proxyType": "MANUAL",
                     }
