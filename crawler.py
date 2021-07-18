@@ -43,7 +43,7 @@ class DVSACrawler:
         self.customer = customer
         self.proxy = proxy
         #self.proxy = None
-        logger.debug(self.customer)
+        logger.info(self.customer)
 
         if self.proxy:
             logger.info(f"Proxy: {self.proxy}")
@@ -101,7 +101,7 @@ class DVSACrawler:
                 self.driver.execute_script(self.display_slots_script)
                 self.auto_book()
             else:
-                logger.debug("there are no available dates")
+                logger.info("there are no available dates")
                 for each in self.customer.test_centers:
                     time.sleep(5)
                     test_center_name = each.name
@@ -117,7 +117,7 @@ class DVSACrawler:
                         self.driver.execute_script(self.display_slots_script)
                         self.auto_book(test_center=each)
                     else:
-                        logger.debug("there are no available dates")
+                        logger.info("there are no available dates")
 
     def get_profile(self):
         user_agent = headers.get_user_agent()
@@ -310,7 +310,7 @@ class DVSACrawler:
         if is_after_earliest_time and is_before_latest_time:
             return True
         else:
-            logger.debug("Time not within range")
+            logger.info("Time not within range")
             return False
 
     def is_day_within_customer_date_range(self, date_found: str):
@@ -326,7 +326,7 @@ class DVSACrawler:
         Is the day found BEFORE the customer earliest viable date?
         """
         if date_object < earliest:
-            logger.debug("Date before customer date range")
+            logger.info("Date before customer date range")
             return False
 
         if not self.customer.latest_test_date:
@@ -342,7 +342,7 @@ class DVSACrawler:
         Is the day found AFTER the customer earliest viable date?
         """
         if date_object > latest:
-            logger.debug("Date after customer date range")
+            logger.info("Date after customer date range")
             return False
         else:
             return True
@@ -352,7 +352,7 @@ class DVSACrawler:
         last_refundable_date = (datetime.today() + timedelta(days=5)).date()
 
         if date_object < last_refundable_date:
-            logger.debug("Date not within refundable range")
+            logger.info("Date not within refundable range")
             return False
         else:
             return True
@@ -362,7 +362,7 @@ class DVSACrawler:
 
         if self.customer.recent_test_failure \
                 and date_object < self.customer.recent_test_failure + timedelta(days=16):
-                    logger.debug("Date not after recent failure limit")
+                    logger.info("Date not after recent failure limit")
                     return False
         else:
             return True
@@ -391,7 +391,7 @@ class DVSACrawler:
         elif date_is_equal and time_is_before:
             return True
         else:
-            logger.debug("Date not before current test date")
+            logger.info("Date not before current test date")
             return False
 
     def get_dates(self):
@@ -452,7 +452,7 @@ class DVSACrawler:
         if self.captcha_solved:
             return None
 
-        logger.debug('Checking reCAPTCHA presence')
+        logger.info('Checking reCAPTCHA presence')
         try:
             captcha_iframe = WebDriverWait(self.driver, self.WAIT_FOR_CAPTCHA_TIME).until(
                     EC.presence_of_element_located((By.XPATH, '//iframe[@id="main-iframe"]')))
