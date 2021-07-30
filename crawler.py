@@ -349,7 +349,7 @@ class DVSACrawler:
 
     def is_day_within_refundable_range(self, date_found: str):
         date_object = datetime.strptime(date_found, "%Y-%m-%d").date()
-        last_refundable_date = (datetime.today() + timedelta(days=5)).date()
+        last_refundable_date = (datetime.today() + timedelta(days=6)).date()
 
         if date_object < last_refundable_date:
             logger.info("Date not within refundable range")
